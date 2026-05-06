@@ -1,16 +1,9 @@
-// Vercel cron job — runs every 15 minutes (see vercel.json)
-// Protect with CRON_SECRET to prevent unauthorized calls
-
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { publishToLinkedIn, isTokenExpired } from '@/lib/linkedin-api'
 
-export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+async function handler(_request: NextRequest) {
   const now = new Date().toISOString()
 
   const { data: posts, error } = await supabaseAdmin
@@ -72,3 +65,5 @@ export async function GET(request: NextRequest) {
   console.log('Cron publish results:', summary)
   return NextResponse.json({ processed: summary.length, results: summary })
 }
+
+export const POST = verifySignatureAppRouter(handler)
