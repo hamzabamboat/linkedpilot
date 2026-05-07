@@ -154,7 +154,7 @@ function AnimatedPost() {
       initial={{ opacity: 0, x: 32, scale: 0.97 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ duration: 0.75, delay: 0.35, ease }}
-      className="bg-white rounded-2xl p-6 shadow-[0_24px_64px_rgba(0,0,0,0.10)] max-w-[460px] w-full border border-slate-200/80"
+      className="bg-white rounded-2xl p-4 md:p-6 shadow-[0_24px_64px_rgba(0,0,0,0.10)] max-w-[460px] w-full border border-slate-200/80"
     >
       <div className="flex items-center gap-3 mb-4">
         <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand to-brand-dark flex items-center justify-center text-white font-bold text-lg shadow-sm">A</div>
@@ -194,7 +194,7 @@ function PricingSlider() {
   const plan = PLANS[idx]
 
   return (
-    <div className="bg-white rounded-2xl p-10 shadow-[0_4px_24px_rgba(0,0,0,0.07)] max-w-[600px] mx-auto border border-slate-100">
+    <div className="bg-white rounded-2xl p-5 md:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.07)] max-w-[600px] mx-auto border border-slate-100">
       <div className="text-center mb-8">
         <motion.div
           key={idx}
@@ -261,17 +261,19 @@ function PricingSlider() {
 function HomeContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className="bg-slate-50">
       {/* Nav */}
       <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
-        <div className="max-w-[1100px] mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-gradient-to-br from-brand to-brand-dark rounded-[10px] flex items-center justify-center text-white font-extrabold text-lg shadow-sm">P</div>
             <span className="font-bold text-lg text-slate-900">PersonaLink</span>
           </div>
-          <div className="flex gap-2 items-center">
+          {/* Desktop nav links */}
+          <div className="hidden md:flex gap-2 items-center">
             <a href="#pricing" className="px-4 py-2 text-slate-500 text-sm font-medium hover:text-slate-900 transition-colors">Pricing</a>
             <a href="#faq" className="px-4 py-2 text-slate-500 text-sm font-medium hover:text-slate-900 transition-colors">FAQ</a>
             <Button
@@ -282,7 +284,33 @@ function HomeContent() {
               Connect LinkedIn
             </Button>
           </div>
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+            onClick={() => setMobileMenuOpen(o => !o)}
+            aria-label="Menu"
+          >
+            {mobileMenuOpen ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            )}
+          </button>
         </div>
+        {/* Mobile menu overlay */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-slate-100 px-4 py-4 flex flex-col gap-3">
+            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-3 text-slate-700 text-base font-medium border-b border-slate-100">Pricing</a>
+            <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-3 text-slate-700 text-base font-medium border-b border-slate-100">FAQ</a>
+            <Button
+              onClick={() => window.location.href = '/api/auth/linkedin'}
+              className="w-full h-12 text-base font-semibold gap-2 mt-1"
+            >
+              <LinkedinIcon className="w-4 h-4" />
+              Connect LinkedIn
+            </Button>
+          </div>
+        )}
       </nav>
 
       {error && (
@@ -293,14 +321,14 @@ function HomeContent() {
 
       {/* ── Hero ── */}
       <section className="hero-bg max-w-full">
-        <div className="max-w-[1100px] mx-auto px-6 py-24 pb-20 grid grid-cols-2 gap-16 items-center">
+        <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-12 md:py-24 md:pb-20 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
           <motion.div
             initial="hidden"
             animate="show"
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
           >
             <motion.div variants={staggerItem}>
-              <div className="inline-flex items-center gap-2 bg-brand-light border border-brand/10 rounded-full px-3.5 py-1.5 mb-6 text-[13px] font-semibold text-brand">
+              <div className="inline-flex items-center gap-2 bg-brand-light border border-brand/10 rounded-full px-3.5 py-1.5 mb-5 text-[13px] font-semibold text-brand">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
                 AI-powered LinkedIn growth
               </div>
@@ -308,20 +336,20 @@ function HomeContent() {
 
             <motion.h1
               variants={staggerItem}
-              className="text-[58px] font-extrabold text-slate-900 leading-[1.08] mb-5 tracking-tight"
+              className="text-[28px] md:text-[58px] font-extrabold text-slate-900 leading-[1.08] mb-4 md:mb-5 tracking-tight"
             >
               Your LinkedIn,<br />
               <span className="gradient-text">on autopilot.</span>
             </motion.h1>
 
-            <motion.p variants={staggerItem} className="text-lg text-slate-500 leading-[1.75] mb-9 max-w-[440px]">
+            <motion.p variants={staggerItem} className="text-base md:text-lg text-slate-500 leading-[1.75] mb-7 md:mb-9 max-w-[440px]">
               AI writes posts in your exact voice, schedules them at peak times, and grows your personal brand — while you focus on your actual work.
             </motion.p>
 
-            <motion.div variants={staggerItem} className="flex gap-3 flex-wrap">
+            <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => window.location.href = '/api/auth/linkedin'}
-                className="h-13 px-7 text-base font-bold gap-2.5 shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/25 transition-all duration-200"
+                className="h-12 md:h-13 px-6 md:px-7 text-base font-bold gap-2.5 shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/25 transition-all duration-200 w-full sm:w-auto"
               >
                 <LinkedinIcon className="w-5 h-5" />
                 Connect LinkedIn — Free
@@ -329,7 +357,7 @@ function HomeContent() {
               <Button
                 render={<a href="#pricing" />}
                 variant="outline"
-                className="h-13 px-7 text-base font-semibold border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200"
+                className="h-12 md:h-13 px-6 md:px-7 text-base font-semibold border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 w-full sm:w-auto"
               >
                 See pricing
                 <ChevronRight className="w-4 h-4 ml-1" />
@@ -353,15 +381,15 @@ function HomeContent() {
       </section>
 
       {/* ── How it works ── */}
-      <section className="bg-white py-20 border-t border-b border-slate-100">
-        <div className="max-w-[900px] mx-auto px-6 text-center">
+      <section className="bg-white py-12 md:py-20 border-t border-b border-slate-100">
+        <div className="max-w-[900px] mx-auto px-4 md:px-6 text-center">
           <FadeUp>
             <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">How it works</div>
-            <h2 className="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Three steps to LinkedIn on autopilot</h2>
-            <p className="text-slate-500 text-lg mb-14">Set up in 10 minutes, posts flowing within the hour.</p>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Three steps to LinkedIn on autopilot</h2>
+            <p className="text-slate-500 text-base md:text-lg mb-10 md:mb-14">Set up in 10 minutes, posts flowing within the hour.</p>
           </FadeUp>
           <motion.div
-            className="grid grid-cols-3 gap-8"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
             variants={staggerContainer}
             initial="hidden"
             whileInView="show"
@@ -390,15 +418,15 @@ function HomeContent() {
       </section>
 
       {/* ── Features ── */}
-      <section className="py-20 px-6 section-gradient">
+      <section className="py-12 md:py-20 px-4 md:px-6 section-gradient">
         <div className="max-w-[1100px] mx-auto">
-          <FadeUp className="text-center mb-14">
+          <FadeUp className="text-center mb-10 md:mb-14">
             <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">Features</div>
-            <h2 className="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Everything you need</h2>
-            <p className="text-slate-500 text-lg">Built for founders, executives, and professionals serious about LinkedIn</p>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Everything you need</h2>
+            <p className="text-slate-500 text-base md:text-lg">Built for founders, executives, and professionals serious about LinkedIn</p>
           </FadeUp>
           <motion.div
-            className="grid grid-cols-3 gap-5"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5"
             variants={staggerContainer}
             initial="hidden"
             whileInView="show"
@@ -425,12 +453,12 @@ function HomeContent() {
       </section>
 
       {/* ── Pricing ── */}
-      <section id="pricing" className="bg-white py-20 px-6 border-t border-slate-100">
+      <section id="pricing" className="bg-white py-12 md:py-20 px-4 md:px-6 border-t border-slate-100">
         <div className="max-w-[1100px] mx-auto">
-          <FadeUp className="text-center mb-14">
+          <FadeUp className="text-center mb-10 md:mb-14">
             <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">Pricing</div>
-            <h2 className="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Simple, transparent pricing</h2>
-            <p className="text-slate-500 text-lg mb-3">Slide to see what each plan includes</p>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Simple, transparent pricing</h2>
+            <p className="text-slate-500 text-base md:text-lg mb-3">Slide to see what each plan includes</p>
             <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-1.5 text-sm font-semibold text-emerald-700">
               <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
               7-day free trial on all plans — no charge for 7 days
@@ -440,7 +468,7 @@ function HomeContent() {
             <PricingSlider />
           </FadeUp>
           <motion.div
-            className="grid grid-cols-3 gap-5 mt-12"
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8 md:mt-12"
             variants={staggerContainer}
             initial="hidden"
             whileInView="show"
@@ -501,11 +529,11 @@ function HomeContent() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="faq" className="py-20 px-6 bg-slate-50">
+      <section id="faq" className="py-12 md:py-20 px-4 md:px-6 bg-slate-50">
         <div className="max-w-[720px] mx-auto">
-          <FadeUp className="text-center mb-14">
+          <FadeUp className="text-center mb-10 md:mb-14">
             <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">FAQ</div>
-            <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Frequently asked</h2>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Frequently asked</h2>
           </FadeUp>
           <FadeUp delay={0.08}>
             <Accordion multiple={false} className="flex flex-col gap-1">
@@ -526,14 +554,14 @@ function HomeContent() {
 
       {/* ── CTA ── */}
       <FadeUp>
-        <section className="relative py-24 px-6 text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #084d93 100%)' }}>
+        <section className="relative py-14 md:py-24 px-4 md:px-6 text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #084d93 100%)' }}>
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
           <div className="relative">
-            <h2 className="text-[42px] font-extrabold text-white mb-4 tracking-tight">Start growing on LinkedIn today</h2>
-            <p className="text-white/75 text-lg mb-9">No credit card required. Set up in 10 minutes.</p>
+            <h2 className="text-[24px] md:text-[42px] font-extrabold text-white mb-4 tracking-tight">Start growing on LinkedIn today</h2>
+            <p className="text-white/75 text-base md:text-lg mb-7 md:mb-9">No credit card required. Set up in 10 minutes.</p>
             <Button
               onClick={() => window.location.href = '/api/auth/linkedin'}
-              className="bg-white text-brand hover:bg-white/95 h-14 px-9 text-[17px] font-bold shadow-xl shadow-black/20 gap-2.5 transition-all duration-200 hover:scale-105"
+              className="bg-white text-brand hover:bg-white/95 h-12 md:h-14 px-6 md:px-9 text-base md:text-[17px] font-bold shadow-xl shadow-black/20 gap-2.5 transition-all duration-200 hover:scale-105 w-full sm:w-auto"
             >
               <LinkedinIcon className="w-5 h-5" />
               Connect LinkedIn — Free

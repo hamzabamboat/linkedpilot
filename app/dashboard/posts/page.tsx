@@ -117,9 +117,9 @@ function PostsContent() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       <Dialog open={!!editingPost} onOpenChange={(open) => { if (!open) setEditingPost(null) }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg mx-4 md:mx-auto w-[calc(100vw-2rem)] md:w-full">
           <DialogHeader><DialogTitle className="text-base font-bold">Edit Post</DialogTitle></DialogHeader>
           <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} className="h-48 resize-none text-[14px]" />
           <div className="space-y-2">
@@ -135,16 +135,17 @@ function PostsContent() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex justify-between items-start mb-7">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-7">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">My Posts</h1>
+          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">My Posts</h1>
           <p className="text-slate-400 text-sm font-medium">{posts.length} posts total</p>
         </div>
         <div className="flex gap-2">
           {plan === 'pro' && (
             <Button onClick={bulkGenerate} size="sm" className="gap-1.5 bg-pro hover:bg-pro/90 text-white shadow-sm">
               <Zap className="size-3.5" />
-              Bulk Fill 30 Days
+              <span className="hidden sm:inline">Bulk Fill 30 Days</span>
+              <span className="sm:hidden">Bulk Fill</span>
             </Button>
           )}
           <Button render={<Link href="/dashboard/generate" />} size="sm" className="gap-1.5 shadow-sm">
@@ -238,13 +239,13 @@ function PostsContent() {
                   )}
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px]"
+                  <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] min-w-[36px]"
                     onClick={() => { setEditingPost(post); setEditContent(post.content); setEditSchedule(post.scheduled_at?.slice(0, 16) || '') }}>
                     <Pencil className="size-3.5" />
-                    Edit
+                    <span className="hidden sm:inline">Edit</span>
                   </Button>
                   <Button size="sm" variant="outline"
-                    className="border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    className="border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 min-w-[36px]"
                     onClick={() => deletePost(post.id)}>
                     <Trash2 className="size-3.5" />
                   </Button>

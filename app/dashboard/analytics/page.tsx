@@ -102,8 +102,8 @@ export default function AnalyticsPage() {
 
   if (plan === 'starter') {
     return (
-      <div className="p-8 max-w-2xl">
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Analytics</h1>
+      <div className="p-4 md:p-8 max-w-2xl">
+        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Analytics</h1>
         <Card className="mt-6 border-slate-100 shadow-sm">
           <CardContent className="py-16 px-10 text-center">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand/10 to-pro/10 flex items-center justify-center mx-auto mb-5">
@@ -156,13 +156,13 @@ export default function AnalyticsPage() {
   const medalBgs = ['#fffbeb', '#f8fafc', '#fff7ed']
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="mb-7">
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Analytics</h1>
+    <div className="p-4 md:p-8 max-w-4xl">
+      <div className="mb-5 md:mb-7">
+        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Analytics</h1>
         <p className="text-slate-400 text-sm font-medium">Your LinkedIn performance at a glance</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-5 md:mb-6">
         {STAT_CONFIGS.map(cfg => {
           const Icon = cfg.icon
           return (
@@ -181,7 +181,7 @@ export default function AnalyticsPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-[3fr_2fr] gap-5 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-4 md:gap-5 mb-4 md:mb-5">
         <Card className="border-slate-100 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-[14px] font-semibold text-slate-900">LinkedIn Score History</CardTitle>

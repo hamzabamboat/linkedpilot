@@ -155,9 +155,9 @@ function GenerateContent() {
   const canGenerate = tab === 'ai' ? topic.trim().length > 0 : tab === 'voice' ? !!voiceNoteId : !!selectedStory
 
   return (
-    <div className="p-7 max-w-[820px]">
-      <div className="mb-7">
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Generate Post</h1>
+    <div className="p-4 md:p-7 max-w-[820px]">
+      <div className="mb-5 md:mb-7">
+        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Generate Post</h1>
         <p className="text-sm text-slate-400 font-medium">AI writes in your exact voice. You approve before it goes live.</p>
       </div>
 
@@ -424,7 +424,7 @@ function GenerateContent() {
               </div>
             )}
             <div className="flex flex-col gap-2.5">
-              <div className="flex gap-2.5">
+              <div className="flex flex-col sm:flex-row gap-2.5">
                 <Input
                   type="datetime-local"
                   value={scheduleDate}
@@ -432,7 +432,7 @@ function GenerateContent() {
                   min={new Date().toISOString().slice(0, 16)}
                   className="flex-1 border-slate-200 text-[14px]"
                 />
-                <Button onClick={schedulePost} disabled={scheduling || !scheduleDate} className="whitespace-nowrap gap-1.5 shadow-sm">
+                <Button onClick={schedulePost} disabled={scheduling || !scheduleDate} className="whitespace-nowrap gap-1.5 shadow-sm w-full sm:w-auto">
                   {scheduling
                     ? <><Loader2 className="size-4 animate-spin" /> Scheduling...</>
                     : <><CalendarClock className="size-4" /> Schedule</>

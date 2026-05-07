@@ -154,16 +154,16 @@ function SettingsContent() {
   }
 
   return (
-    <div className="p-7 max-w-[820px]">
-      <div className="mb-7">
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Settings</h1>
+    <div className="p-4 md:p-7 max-w-[820px]">
+      <div className="mb-5 md:mb-7">
+        <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Settings</h1>
         <p className="text-sm text-slate-400 font-medium">Manage your account preferences</p>
       </div>
 
-      <div className="flex gap-6">
-        {/* Sidebar nav */}
-        <div className="w-44 shrink-0">
-          <nav className="flex flex-col gap-0.5">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+        {/* Tab nav — horizontal scroll on mobile, vertical on desktop */}
+        <div className="md:w-44 md:shrink-0">
+          <nav className="flex md:flex-col gap-0.5 overflow-x-auto pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
             {TABS.map(t => {
               const Icon = t.icon
               const active = tab === t.id
@@ -172,13 +172,13 @@ function SettingsContent() {
                   key={t.id}
                   variant="ghost"
                   onClick={() => setTab(t.id)}
-                  className={`justify-start gap-2.5 text-[13.5px] font-medium h-9 relative ${
+                  className={`justify-start gap-2 text-[13px] font-medium h-9 relative shrink-0 md:shrink md:w-full ${
                     active
                       ? 'bg-brand-light text-brand font-semibold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
                 >
-                  {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-brand rounded-full" />}
+                  {active && <span className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-brand rounded-full" />}
                   <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-brand' : 'text-slate-400'}`} strokeWidth={active ? 2 : 1.75} />
                   {t.label}
                 </Button>
@@ -188,7 +188,7 @@ function SettingsContent() {
         </div>
 
         {/* Content */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {/* Profile */}
           {tab === 'profile' && (
             <Card className="border-slate-100 shadow-sm">
@@ -248,7 +248,7 @@ function SettingsContent() {
                     className="min-h-[120px] resize-none border-slate-200 text-[14px]"
                   />
                 </div>
-                <Button onClick={saveProfile} disabled={saving} className="w-fit mt-2 gap-1.5 shadow-sm">
+                <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-fit mt-2 gap-1.5 shadow-sm">
                   {saving ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : <><Check className="size-4" /> Save Profile</>}
                 </Button>
               </CardContent>
@@ -295,7 +295,7 @@ function SettingsContent() {
                     </button>
                   )
                 })}
-                <Button onClick={saveProfile} disabled={saving} className="w-fit mt-2 gap-1.5 shadow-sm">
+                <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-fit mt-2 gap-1.5 shadow-sm">
                   {saving ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : <><Check className="size-4" /> Save Control Settings</>}
                 </Button>
               </CardContent>
@@ -354,7 +354,7 @@ function SettingsContent() {
                     ))}
                   </select>
                 </div>
-                <Button onClick={saveProfile} disabled={saving} className="w-fit gap-1.5 shadow-sm">
+                <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-fit gap-1.5 shadow-sm">
                   {saving ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : <><Check className="size-4" /> Save Schedule</>}
                 </Button>
               </CardContent>
@@ -369,7 +369,7 @@ function SettingsContent() {
                   <CardTitle className="text-base font-bold">Current Plan</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex gap-4 mb-5 flex-wrap">
+                  <div className="grid grid-cols-2 md:flex gap-3 md:gap-4 mb-5">
                     <div className="rounded-xl px-5 py-4" style={{ background: planColor + '0d', border: `1px solid ${planColor}25` }}>
                       <div className="flex items-center gap-2 mb-1">
                         <div className="text-xs font-bold uppercase tracking-wider" style={{ color: planColor }}>{plan} Plan</div>
@@ -544,7 +544,7 @@ function SettingsContent() {
                     {i < 4 && <Separator className="bg-slate-100" />}
                   </div>
                 ))}
-                <Button onClick={saveProfile} disabled={saving} className="w-fit mt-4 gap-1.5 shadow-sm">
+                <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-fit mt-4 gap-1.5 shadow-sm">
                   {saving ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : <><Check className="size-4" /> Save Preferences</>}
                 </Button>
               </CardContent>

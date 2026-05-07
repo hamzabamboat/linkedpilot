@@ -42,6 +42,11 @@ export default function OnboardingPage() {
     name: '', role: '', industry: '', company: '', years_experience: '', linkedin_url: '',
     mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'standard',
   })
+  const [codeInput, setCodeInput] = useState('')
+  const [codeChecking, setCodeChecking] = useState(false)
+  const [codeError, setCodeError] = useState('')
+  const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
+  const [showCodeField, setShowCodeField] = useState(false)
 
   function nextStep() { setError(''); if (step < TOTAL_STEPS) setStep(s => s + 1) }
   function prevStep() { setError(''); if (step > 1) setStep(s => s - 1) }
@@ -53,6 +58,38 @@ export default function OnboardingPage() {
       if (current.length >= 3) return f
       return { ...f, content_pillars: [...current, p] }
     })
+  }
+
+  async function checkCode() {
+    if (!codeInput.trim()) return
+    setCodeChecking(true); setCodeError(''); setAppliedCode(null)
+    const res = await fetch(`/api/access-codes/validate?code=${encodeURIComponent(codeInput.trim())}`)
+    const d = await res.json()
+    if (d.valid) {
+      setAppliedCode({ code: d.code, plan: d.plan })
+      setForm(f => ({ ...f, plan: d.plan }))
+    } else {
+      setCodeError(d.error || 'Invalid code')
+    }
+    setCodeChecking(false)
+  }
+
+  async function handleFinishWithCode() {
+    if (!appliedCode) return
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/access-codes/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: appliedCode.code, ...form }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) { setError(data.error || 'Failed to apply code'); setSaving(false); return }
+      router.push('/dashboard')
+    } catch {
+      setError('Network error. Please try again.')
+      setSaving(false)
+    }
   }
 
   async function handleFinish() {
@@ -92,7 +129,7 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      <div className="max-w-[680px] mx-auto px-6 py-12">
+      <div className="max-w-[680px] mx-auto px-4 md:px-6 py-8 md:py-12">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm mb-6">{error}</div>
         )}
@@ -100,9 +137,9 @@ export default function OnboardingPage() {
         {/* Step 1 — Basic Info */}
         {step === 1 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 1 — BASIC INFO</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">Tell us about yourself</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Tell us about yourself</h1>
               <p className="text-slate-500 text-base">This helps us personalise your content pillars and voice.</p>
             </div>
             <div className="flex flex-col gap-5">
@@ -135,23 +172,23 @@ export default function OnboardingPage() {
         {/* Step 2 — MCQ */}
         {step === 2 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 2 — PERSONALITY QUIZ</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">Your LinkedIn personality</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Your LinkedIn personality</h1>
               <p className="text-slate-500 text-base">Helps our AI match your communication style perfectly.</p>
             </div>
             <div className="flex flex-col gap-8">
               {MCQ_QUESTIONS.map(q => (
                 <div key={q.id}>
                   <p className="font-semibold text-slate-900 mb-3.5 text-[15px]">{q.q}</p>
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-2.5">
                     {q.options.map(opt => {
                       const selected = form.mcq_answers[q.id] === opt
                       return (
                         <button
                           key={opt}
                           onClick={() => setForm(f => ({ ...f, mcq_answers: { ...f.mcq_answers, [q.id]: opt } }))}
-                          className={`px-4 py-2.5 rounded-full border-2 text-sm transition-all ${
+                          className={`px-4 py-3 sm:py-2.5 rounded-xl sm:rounded-full border-2 text-sm transition-all text-left sm:text-center min-h-[48px] sm:min-h-0 ${
                             selected ? 'border-brand bg-brand-light text-brand font-semibold' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                           }`}
                         >
@@ -173,9 +210,9 @@ export default function OnboardingPage() {
         {/* Step 3 — Writing Sample */}
         {step === 3 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 3 — WRITING SAMPLE</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">Write like you normally do</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Write like you normally do</h1>
               <p className="text-slate-500 text-base">Write 2-3 paragraphs about anything you did recently — a meeting, a decision, a lesson. We analyse your vocabulary, tone, and rhythm to build your voice fingerprint.</p>
             </div>
             <Textarea
@@ -197,9 +234,9 @@ export default function OnboardingPage() {
         {/* Step 4 — Content Pillars */}
         {step === 4 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 4 — CONTENT PILLARS</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">Pick your 3 content pillars</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Pick your 3 content pillars</h1>
               <p className="text-slate-500 text-base">These are the themes your posts will rotate across. Pick exactly 3.</p>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -236,9 +273,9 @@ export default function OnboardingPage() {
         {/* Step 5 — Control Preferences */}
         {step === 5 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 5 — CONTROL PREFERENCES</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">How much control do you want?</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">How much control do you want?</h1>
               <p className="text-slate-500 text-base">You can change this anytime from Settings.</p>
             </div>
             <div className="flex flex-col gap-4">
@@ -283,9 +320,9 @@ export default function OnboardingPage() {
         {/* Step 6 — Image Brief */}
         {step === 6 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 6 — MONTHLY IMAGE BRIEF</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">Your photo content brief</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Your photo content brief</h1>
               <p className="text-slate-500 text-base">Based on your industry and pillars, here are 5 photo prompts to shoot this month. Images boost engagement by 3x.</p>
             </div>
             <div className="flex flex-col gap-3.5 mb-8">
@@ -314,9 +351,9 @@ export default function OnboardingPage() {
         {/* Step 7 — Plan Selection */}
         {step === 7 && (
           <div className="animate-fade">
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
               <div className="text-[13px] font-semibold text-brand mb-2">STEP 7 — CHOOSE YOUR PLAN</div>
-              <h1 className="text-[32px] font-extrabold text-slate-900 mb-2">Try free for 7 days</h1>
+              <h1 className="text-[22px] md:text-[32px] font-extrabold text-slate-900 mb-2">Try free for 7 days</h1>
               <p className="text-slate-500 text-base">Pick a plan — you won&apos;t be charged for 7 days. Cancel anytime.</p>
             </div>
             <div className="flex flex-col gap-4 mb-8">
@@ -352,10 +389,55 @@ export default function OnboardingPage() {
                 )
               })}
             </div>
-            <Button onClick={handleFinish} disabled={saving} className="w-full h-14 text-[17px] font-bold mb-2.5">
-              {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Setting up your account...</> : 'Start Free Trial →'}
-            </Button>
-            <p className="text-center text-[12px] text-slate-400 mb-2">Card required. No charge for 7 days. Cancel anytime.</p>
+            {/* Access code section */}
+            <div className="mb-4">
+              {!showCodeField ? (
+                <button
+                  onClick={() => setShowCodeField(true)}
+                  className="text-sm text-slate-400 hover:text-brand transition-colors underline underline-offset-2"
+                >
+                  Have an access code?
+                </button>
+              ) : (
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                  <p className="text-[13px] font-semibold text-slate-600 mb-3">Enter your access code</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={codeInput}
+                      onChange={e => { setCodeInput(e.target.value.toUpperCase()); setAppliedCode(null); setCodeError('') }}
+                      placeholder="PERSONALINK-FREE-1234"
+                      className="font-mono text-sm flex-1"
+                      disabled={!!appliedCode}
+                    />
+                    {!appliedCode && (
+                      <Button variant="outline" onClick={checkCode} disabled={codeChecking || !codeInput.trim()} className="shrink-0">
+                        {codeChecking ? <Loader2 className="size-4 animate-spin" /> : 'Apply'}
+                      </Button>
+                    )}
+                  </div>
+                  {codeError && <p className="mt-2 text-[13px] text-red-500">{codeError}</p>}
+                  {appliedCode && (
+                    <div className="mt-3 flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                      <CheckCircle2 className="size-4 shrink-0" />
+                      <p className="text-[13px] font-semibold">
+                        Code applied! You get <span className="capitalize">{appliedCode.plan}</span> plan free.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {appliedCode ? (
+              <Button onClick={handleFinishWithCode} disabled={saving} className="w-full h-14 text-[17px] font-bold mb-2.5 bg-emerald-600 hover:bg-emerald-700">
+                {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Activating...</> : `Activate ${appliedCode.plan.charAt(0).toUpperCase() + appliedCode.plan.slice(1)} Plan →`}
+              </Button>
+            ) : (
+              <Button onClick={handleFinish} disabled={saving} className="w-full h-14 text-[17px] font-bold mb-2.5">
+                {saving ? <><Loader2 className="size-5 mr-2 animate-spin" /> Setting up your account...</> : 'Start Free Trial →'}
+              </Button>
+            )}
+            {!appliedCode && <p className="text-center text-[12px] text-slate-400 mb-2">Card required. No charge for 7 days. Cancel anytime.</p>}
             <Button variant="outline" onClick={prevStep} className="w-full">← Back</Button>
           </div>
         )}

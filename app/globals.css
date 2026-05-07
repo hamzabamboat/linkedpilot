@@ -157,3 +157,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @media (min-width: 769px) {
   .hide-desktop { display: none !important; }
 }
+
+/* Bottom nav safe area for notched phones */
+.safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile: ensure 16px inputs to prevent iOS auto-zoom */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}

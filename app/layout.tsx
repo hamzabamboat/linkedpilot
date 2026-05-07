@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
@@ -14,12 +14,18 @@ export const metadata: Metadata = {
   description: 'AI-powered LinkedIn content generated in your voice, posted on autopilot.',
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body>
+      <body className="overflow-x-hidden">
         {children}
-        <Toaster richColors position="bottom-right" />
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   )

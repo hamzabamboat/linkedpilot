@@ -21,6 +21,14 @@ import {
   X,
   Clock,
 } from 'lucide-react'
+
+const BOTTOM_NAV_ITEMS = [
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard, exact: true },
+  { href: '/dashboard/generate', label: 'Generate', icon: Sparkles },
+  { href: '/dashboard/posts', label: 'Posts', icon: FileText },
+  { href: '/dashboard/suggestions', label: 'Ideas', icon: Lightbulb },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+]
 import { motion, AnimatePresence } from 'framer-motion'
 
 const NAV_ITEMS = [
@@ -223,7 +231,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <AnimatePresence mode="wait" initial={false}>
           <motion.main
             key={pathname}
-            className="flex-1 overflow-x-hidden"
+            className="flex-1 overflow-x-hidden pb-16 md:pb-0"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -233,6 +241,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </motion.main>
         </AnimatePresence>
       </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 safe-pb">
+        <div className="flex h-14">
+          {BOTTOM_NAV_ITEMS.map(item => {
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 pt-1 transition-colors ${
+                  active ? 'text-[#0B458B]' : 'text-slate-400'
+                }`}
+              >
+                <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
     </div>
   )
 }

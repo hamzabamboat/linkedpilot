@@ -106,13 +106,13 @@ export default function SuggestionsPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
-      <div className="flex justify-between items-start mb-7">
+    <div className="p-4 md:p-8 max-w-3xl">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-7">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Post Ideas</h1>
+          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Post Ideas</h1>
           <p className="text-slate-400 text-sm font-medium">Fresh ideas tailored to your industry and voice</p>
         </div>
-        <Button variant="outline" onClick={refreshSuggestions} disabled={generating} size="sm" className="gap-1.5 border-slate-200">
+        <Button variant="outline" onClick={refreshSuggestions} disabled={generating} size="sm" className="gap-1.5 border-slate-200 w-full sm:w-auto">
           <RefreshCw className={`size-3.5 ${generating ? 'animate-spin' : ''}`} />
           {generating ? 'Refreshing...' : 'Refresh Ideas'}
         </Button>

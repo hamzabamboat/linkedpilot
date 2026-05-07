@@ -85,7 +85,7 @@ function DashboardContent() {
           <div className="skeleton h-8 w-56 mb-2.5 rounded" />
           <div className="skeleton h-4 w-40 rounded" />
         </div>
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="border-slate-100">
               <CardContent className="pt-6">
@@ -110,25 +110,25 @@ function DashboardContent() {
   const usagePct = Math.min((postsUsed / postsLimit) * 100, 100)
 
   return (
-    <div className="p-7 max-w-[1000px]">
+    <div className="p-4 md:p-7 max-w-[1000px]">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">
+          <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">
             Good morning, {firstName}
           </h1>
           <p className="text-sm text-slate-400 font-medium">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
-        <Button render={<Link href="/dashboard/generate" />} className="gap-2 shadow-sm hover:shadow-md transition-shadow">
+        <Button render={<Link href="/dashboard/generate" />} className="gap-2 shadow-sm hover:shadow-md transition-shadow w-full sm:w-auto">
           <Sparkles className="size-4" />
           Generate Post
         </Button>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-7">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-5 md:mb-7">
         {/* LinkedIn Score */}
         <Card className="border-slate-100 card-hover">
           <CardContent className="pt-5 flex items-center gap-3.5">
@@ -211,7 +211,7 @@ function DashboardContent() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-[1.4fr_1fr] gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-4 md:gap-5">
         {/* Recent posts */}
         <Card className="overflow-hidden border-slate-100">
           <CardHeader className="py-4 px-6 border-b border-slate-50 flex-row items-center justify-between space-y-0">
