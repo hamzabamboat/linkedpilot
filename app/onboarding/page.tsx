@@ -115,9 +115,8 @@ export default function OnboardingPage() {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-6">
         <div className="max-w-[720px] mx-auto h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-extrabold text-base">P</div>
-            <span className="font-bold text-slate-900">PersonaLink</span>
+          <div className="flex items-center">
+            <img src="/logo.png" alt="PersonaLink" className="h-8 w-auto" />
           </div>
           <span className="text-[13px] text-slate-400">Step {step} of {TOTAL_STEPS}</span>
         </div>

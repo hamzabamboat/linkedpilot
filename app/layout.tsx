@@ -11,8 +11,17 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'PersonaLink — Your LinkedIn, on autopilot',
+  title: 'PersonaLink — Your LinkedIn on Autopilot',
   description: 'AI-powered LinkedIn content generated in your voice, posted on autopilot.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'PersonaLink — Your LinkedIn on Autopilot',
+    description: 'AI-powered LinkedIn content manager',
+    images: ['/logo.png'],
+  },
 }
 
 export const viewport: Viewport = {

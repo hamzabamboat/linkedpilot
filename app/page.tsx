@@ -29,7 +29,7 @@ function LinkedinIcon({ className }: { className?: string }) {
 const FEATURES = [
   {
     icon: Brain,
-    color: '#0A66C2',
+    color: '#0B458B',
     bg: '#e8f0fb',
     title: 'AI in Your Voice',
     desc: 'Analyses your writing style and generates posts that sound exactly like you wrote them.',
@@ -82,7 +82,7 @@ const FAQS = [
 
 const PLANS = [
   { id: 'starter', label: 'Starter', price: 999, posts: 12, features: ['AI generation', 'Scheduling', 'Story bank', 'Trends & suggestions', 'Image posts', 'LinkedIn Score'], color: '#64748b' },
-  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'], color: '#0A66C2', popular: true },
+  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'], color: '#0B458B', popular: true },
   { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: ['Everything in Standard', 'Repurpose engine', 'Competitor tracking', 'Bulk generate 30 days', 'Team mode (3 profiles)', 'Priority AI generation'], color: '#7c3aed' },
 ]
 
@@ -268,9 +268,8 @@ function HomeContent() {
       {/* Nav */}
       <nav className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-gradient-to-br from-brand to-brand-dark rounded-[10px] flex items-center justify-center text-white font-extrabold text-lg shadow-sm">P</div>
-            <span className="font-bold text-lg text-slate-900">PersonaLink</span>
+          <div className="flex items-center">
+            <img src="/logo.png" alt="PersonaLink" className="h-8 w-auto" />
           </div>
           {/* Desktop nav links */}
           <div className="hidden md:flex gap-2 items-center">
@@ -480,7 +479,7 @@ function HomeContent() {
                 variants={staggerItem}
                 className="rounded-2xl relative card-hover"
                 style={{
-                  background: p.popular ? 'linear-gradient(135deg, #0A66C2 0%, #084d93 100%)' : 'white',
+                  background: p.popular ? 'linear-gradient(135deg, #0B458B 0%, #083670 100%)' : 'white',
                   border: p.popular ? 'none' : '1px solid #e2e8f0',
                   padding: '32px 28px',
                   boxShadow: p.popular ? '0 16px 48px rgba(10,102,194,0.25)' : '0 1px 3px rgba(0,0,0,0.05)',
@@ -501,7 +500,7 @@ function HomeContent() {
                   {p.features.map(f => (
                     <div key={f} className="flex items-center gap-2.5 text-sm" style={{ color: p.popular ? 'rgba(255,255,255,0.9)' : '#374151' }}>
                       <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: p.popular ? 'rgba(255,255,255,0.2)' : '#e8f0fb' }}>
-                        <Check className="w-2.5 h-2.5" style={{ color: p.popular ? 'white' : '#0A66C2' }} strokeWidth={2.5} />
+                        <Check className="w-2.5 h-2.5" style={{ color: p.popular ? 'white' : '#0B458B' }} strokeWidth={2.5} />
                       </div>
                       {f}
                     </div>
@@ -511,9 +510,9 @@ function HomeContent() {
                   onClick={() => window.location.href = '/api/auth/linkedin'}
                   className="w-full py-3 rounded-xl font-bold text-[15px] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2"
                   style={{
-                    border: p.popular ? 'none' : '1.5px solid #0A66C2',
+                    border: p.popular ? 'none' : '1.5px solid #0B458B',
                     background: p.popular ? 'white' : 'transparent',
-                    color: '#0A66C2',
+                    color: '#0B458B',
                   }}
                 >
                   Start Free Trial
@@ -554,7 +553,7 @@ function HomeContent() {
 
       {/* ── CTA ── */}
       <FadeUp>
-        <section className="relative py-14 md:py-24 px-4 md:px-6 text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #084d93 100%)' }}>
+        <section className="relative py-14 md:py-24 px-4 md:px-6 text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #0B458B 0%, #083670 100%)' }}>
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
           <div className="relative">
             <h2 className="text-[24px] md:text-[42px] font-extrabold text-white mb-4 tracking-tight">Start growing on LinkedIn today</h2>
@@ -572,9 +571,8 @@ function HomeContent() {
 
       {/* Footer */}
       <footer className="bg-slate-900 py-10 px-6 text-center">
-        <div className="flex items-center justify-center gap-2.5 mb-4">
-          <div className="w-8 h-8 bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white font-extrabold text-base shadow-sm">P</div>
-          <span className="font-bold text-base text-white">PersonaLink</span>
+        <div className="flex items-center justify-center mb-4">
+          <img src="/logo-dark.png" alt="PersonaLink" className="h-10 w-auto" />
         </div>
         <p className="text-slate-500 text-[13px]">© 2025 PersonaLink. Your LinkedIn, on autopilot.</p>
       </footer>

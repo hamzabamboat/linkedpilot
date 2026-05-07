@@ -96,7 +96,7 @@
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #0A66C2 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #0B458B 0%, #7c3aed 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -141,9 +141,9 @@ input[type="range"]::-webkit-slider-thumb {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #0A66C2;
+  background: #0B458B;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(10,102,194,0.4);
+  box-shadow: 0 2px 6px rgba(11,69,139,0.4);
   transition: transform 0.1s;
 }
 input[type="range"]::-webkit-slider-thumb:hover {

@@ -59,8 +59,8 @@ const config: Config = {
         },
         // Brand colors
         brand: {
-          DEFAULT: "#0A66C2",
-          dark: "#084d93",
+          DEFAULT: "#0B458B",
+          dark: "#083670",
           light: "#e8f0fb",
         },
         pro: {

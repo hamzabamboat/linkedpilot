@@ -168,9 +168,8 @@ function SidebarContent({ user, profile, plan, planColor, pathname }: {
     <div className="flex flex-col h-full bg-white">
       {/* Logo */}
       <div className="px-5 pt-5 pb-4 border-b border-slate-100">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-[34px] h-[34px] bg-gradient-to-br from-brand to-brand-dark rounded-[9px] flex items-center justify-center text-white font-extrabold text-[17px] shadow-sm">P</div>
-          <span className="font-bold text-[15px] text-slate-900 group-hover:text-brand transition-colors">PersonaLink</span>
+        <Link href="/dashboard" className="flex items-center group">
+          <img src="/logo.png" alt="PersonaLink" className="h-7 w-auto" />
         </Link>
       </div>
 
@@ -301,7 +300,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const plan = profile?.plan || 'starter'
-  const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0A66C2' : '#64748b'
+  const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0B458B' : '#64748b'
 
   const sidebarProps = { user, profile, plan, planColor, pathname }
 
@@ -328,9 +327,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Mobile top bar */}
         <div className="hide-desktop bg-white border-b border-slate-100 h-[54px] flex items-center justify-between px-4 shadow-sm">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-[30px] h-[30px] bg-gradient-to-br from-brand to-brand-dark rounded-lg flex items-center justify-center text-white font-extrabold text-[15px]">P</div>
-            <span className="font-bold text-slate-900 text-[15px]">PersonaLink</span>
+          <Link href="/dashboard" className="flex items-center">
+            <img src="/logo.png" alt="PersonaLink" className="h-7 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
             {user && (
