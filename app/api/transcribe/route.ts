@@ -3,6 +3,8 @@ import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
@@ -17,6 +19,14 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const plan = profile?.plan || 'starter'
+
+  // Circuit breaker
+  const cb = await checkCircuitBreaker()
+  if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
+
+  // Per-user hourly rate limit for Whisper calls
+  const rl = await checkRateLimit(user.id, 'whisper_calls')
+  if (!rl.allowed) return NextResponse.json({ error: `Too many transcription requests this hour (limit: ${rl.limit}). Try again in ${Math.ceil(rl.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
 
   // Starter plan cannot use voice notes
   if (plan === 'starter') {
@@ -100,6 +110,8 @@ export async function POST(request: NextRequest) {
     await Promise.all([
       incrementUsage(user.id, 'voice_transcriptions'),
       incrementUsage(user.id, 'voice_minutes', estimatedMinutes),
+      incrementRateLimit(user.id, 'whisper_calls'),
+      trackAndCheckSpend('openai_whisper', user.id, { minutes: estimatedMinutes }),
     ])
 
     return NextResponse.json({ voiceNoteId: voiceNote.id, transcript: transcription.text })

@@ -4,6 +4,8 @@ import { getUserFromRequest } from '@/lib/auth'
 import { generateSuggestionsForUser } from '@/lib/anthropic'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -18,6 +20,16 @@ export async function POST(request: NextRequest) {
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 400 })
 
   const plan = profile.plan || 'starter'
+
+  // Circuit breaker + hourly rate limits
+  const [cb, rlClaude, rlRefresh] = await Promise.all([
+    checkCircuitBreaker(),
+    checkRateLimit(user.id, 'claude_calls'),
+    checkRateLimit(user.id, 'trend_refresh'),
+  ])
+  if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
+  if (!rlClaude.allowed) return NextResponse.json({ error: `Too many AI calls this hour (limit: ${rlClaude.limit}). Try again in ${Math.ceil(rlClaude.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
+  if (!rlRefresh.allowed) return NextResponse.json({ error: 'You have already refreshed trends twice this hour. Try again next hour.' }, { status: 429 })
 
   // Check trend_refreshes limit before calling Claude
   const refreshCheck = await checkLimit(user.id, plan, 'trend_refreshes')
@@ -75,7 +87,12 @@ export async function POST(request: NextRequest) {
       }))
     )
 
-    await incrementUsage(user.id, 'trend_refreshes')
+    await Promise.all([
+      incrementUsage(user.id, 'trend_refreshes'),
+      incrementRateLimit(user.id, 'claude_calls'),
+      incrementRateLimit(user.id, 'trend_refresh'),
+      trackAndCheckSpend('claude_sonnet', user.id),
+    ])
   }
 
   return NextResponse.json({ count: suggestions.length })

@@ -6,10 +6,20 @@ import { getUserFromRequest } from '@/lib/auth'
 import { generateLinkedInPosts } from '@/lib/anthropic'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Circuit breaker
+  const cb = await checkCircuitBreaker()
+  if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
+
+  // Per-user hourly rate limit
+  const rl = await checkRateLimit(user.id, 'claude_calls')
+  if (!rl.allowed) return NextResponse.json({ error: `Too many requests. You've made ${rl.count} AI calls this hour (limit: ${rl.limit}). Try again in ${Math.ceil(rl.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
 
   const { data: profile } = await supabaseAdmin
     .from('user_profiles')
@@ -134,6 +144,8 @@ export async function POST(request: NextRequest) {
   await Promise.all([
     incrementUsage(user.id, 'posts_generated'),
     storyBankId ? incrementUsage(user.id, 'story_conversions') : Promise.resolve(),
+    incrementRateLimit(user.id, 'claude_calls'),
+    trackAndCheckSpend('claude_sonnet', user.id),
     // Keep posts_used_this_month in sync for the existing dashboard counter
     supabaseAdmin
       .from('user_profiles')

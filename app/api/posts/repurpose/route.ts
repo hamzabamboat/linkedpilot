@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
 import { repurposePost } from '@/lib/anthropic'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
@@ -15,6 +17,14 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const plan = profile?.plan || 'starter'
+
+  // Circuit breaker + hourly rate limit
+  const [cb, rl] = await Promise.all([
+    checkCircuitBreaker(),
+    checkRateLimit(user.id, 'claude_calls'),
+  ])
+  if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
+  if (!rl.allowed) return NextResponse.json({ error: `Too many AI calls this hour (limit: ${rl.limit}). Try again in ${Math.ceil(rl.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
 
   // Repurpose is Pro only
   if (plan !== 'pro') {
@@ -58,7 +68,11 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const angles = await repurposePost(post.content, fullProfile || profile)
-  await incrementUsage(user.id, 'repurpose_runs')
+  await Promise.all([
+    incrementUsage(user.id, 'repurpose_runs'),
+    incrementRateLimit(user.id, 'claude_calls'),
+    trackAndCheckSpend('claude_sonnet', user.id),
+  ])
 
   return NextResponse.json({ angles })
 }

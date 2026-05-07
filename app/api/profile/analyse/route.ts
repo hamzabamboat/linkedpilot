@@ -3,6 +3,8 @@ import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { runProfileAnalysis } from '@/lib/profile-analyzer'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export const maxDuration = 60
 
@@ -18,6 +20,14 @@ export async function POST(request: NextRequest) {
 
   const plan = profile?.plan || 'starter'
 
+  // Circuit breaker + hourly rate limit
+  const [cb, rl] = await Promise.all([
+    checkCircuitBreaker(),
+    checkRateLimit(user.id, 'profile_analysis'),
+  ])
+  if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
+  if (!rl.allowed) return NextResponse.json({ error: 'You have already run a profile analysis this hour. Try again next hour.' }, { status: 429 })
+
   const analysisCheck = await checkLimit(user.id, plan, 'profile_analyses')
   if (!analysisCheck.allowed) {
     await logViolation(user.id, 'profile_analyses', plan)
@@ -32,7 +42,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await runProfileAnalysis(user.id)
-    await incrementUsage(user.id, 'profile_analyses')
+    await Promise.all([
+      incrementUsage(user.id, 'profile_analyses'),
+      incrementRateLimit(user.id, 'profile_analysis'),
+      trackAndCheckSpend('claude_haiku', user.id),
+    ])
     return NextResponse.json(result)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

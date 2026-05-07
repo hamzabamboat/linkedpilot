@@ -3,6 +3,8 @@ import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { anthropic } from '@/lib/anthropic'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export const maxDuration = 300
 
@@ -81,6 +83,18 @@ function buildScheduleSlots(now: Date, count: number, preferredHour: number, pre
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Circuit breaker
+  const cb = await checkCircuitBreaker()
+  if (cb.open) return NextResponse.json({ error: 'Service temporarily unavailable. Please try again in a few minutes.' }, { status: 503 })
+
+  // Per-user hourly rate limits
+  const [rlClaude, rlBatch] = await Promise.all([
+    checkRateLimit(user.id, 'claude_calls'),
+    checkRateLimit(user.id, 'batch_generation'),
+  ])
+  if (!rlClaude.allowed) return NextResponse.json({ error: `Too many AI calls this hour (limit: ${rlClaude.limit}). Try again in ${Math.ceil(rlClaude.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
+  if (!rlBatch.allowed) return NextResponse.json({ error: 'You have already run batch generation this hour. Try again next hour.' }, { status: 429 })
 
   const { data: profile } = await supabaseAdmin
     .from('user_profiles')
@@ -174,6 +188,9 @@ export async function POST(request: NextRequest) {
   await Promise.all([
     incrementUsage(user.id, 'batch_runs'),
     incrementUsage(user.id, 'posts_generated', allPosts.length),
+    incrementRateLimit(user.id, 'claude_calls'),
+    incrementRateLimit(user.id, 'batch_generation'),
+    trackAndCheckSpend('claude_sonnet', user.id, { posts: allPosts.length }),
     supabaseAdmin.from('user_profiles').update({
       posts_used_this_month: (profile.posts_used_this_month || 0) + allPosts.length,
     }).eq('user_id', user.id),

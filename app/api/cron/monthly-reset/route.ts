@@ -5,11 +5,23 @@ import { recordLinkedInScore } from '@/lib/scoring'
 import { generateImageBriefPrompts } from '@/lib/anthropic'
 import { sendImageBriefEmail } from '@/lib/email'
 import { UserProfile } from '@/lib/supabase'
+import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Idempotency lock — prevent double-runs on the same day
+  const today = new Date().toISOString().slice(0, 10)
+  const lockId = crypto.randomUUID()
+  const { error: lockError } = await supabaseAdmin
+    .from('cron_locks')
+    .insert({ job_name: 'monthly-reset', run_date: today, lock_id: lockId })
+  if (lockError) {
+    // Unique constraint violation = already ran today
+    return NextResponse.json({ skipped: true, reason: 'already_ran_today', date: today })
   }
 
   const month = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
@@ -83,6 +95,9 @@ export async function GET(request: NextRequest) {
   )
 
   const succeeded = results.filter(r => r.status === 'fulfilled').length
+
+  // Mark lock as completed
+  await supabaseAdmin.from('cron_locks').update({ completed_at: new Date().toISOString() }).eq('lock_id', lockId)
 
   return NextResponse.json({
     success: true,

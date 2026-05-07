@@ -4,11 +4,22 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getTrendsForProfile, getPostInsights } from '@/lib/trends'
 import { sendWeeklyDigestEmail } from '@/lib/email'
 import { UserProfile } from '@/lib/supabase'
+import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Idempotency lock — prevent double-sends on the same day
+  const today = new Date().toISOString().slice(0, 10)
+  const lockId = crypto.randomUUID()
+  const { error: lockError } = await supabaseAdmin
+    .from('cron_locks')
+    .insert({ job_name: 'weekly-digest', run_date: today, lock_id: lockId })
+  if (lockError) {
+    return NextResponse.json({ skipped: true, reason: 'already_ran_today', date: today })
   }
 
   // Fetch all users with email + active or trial status
@@ -64,5 +75,8 @@ export async function GET(request: NextRequest) {
 
   const sent = summary.filter(r => r && 'status' in r && r.status === 'sent').length
   console.log(`Weekly digest: ${sent}/${users?.length} emails sent`)
+
+  await supabaseAdmin.from('cron_locks').update({ completed_at: new Date().toISOString() }).eq('lock_id', lockId)
+
   return NextResponse.json({ sent, total: users?.length, results: summary })
 }

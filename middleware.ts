@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+const BOT_UA_PATTERNS = [
+  /sqlmap/i, /nikto/i, /nmap/i, /masscan/i, /zgrab/i,
+  /dirbuster/i, /gobuster/i, /wfuzz/i, /burpsuite/i,
+  /python-requests\/[0-9]/i, /go-http-client\/[0-9]/i,
+]
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userId = request.cookies.get('session_user_id')?.value
+
+  // Block known malicious bots on API routes
+  if (pathname.startsWith('/api/')) {
+    const ua = request.headers.get('user-agent') ?? ''
+    if (!ua || BOT_UA_PATTERNS.some(p => p.test(ua))) {
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+  }
 
   // Admin protection — check admin_session cookie matches ADMIN_SECRET
   if (pathname.startsWith('/admin') && pathname !== '/admin/login') {

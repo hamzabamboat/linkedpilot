@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
+import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
 
 export const maxDuration = 30
 
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const plan = profile?.plan || 'starter'
+
+  // Per-user hourly rate limit for uploads
+  const rl = await checkRateLimit(user.id, 'image_uploads')
+  if (!rl.allowed) return NextResponse.json({ error: `Too many uploads this hour (limit: ${rl.limit}). Try again in ${Math.ceil(rl.retryAfterSeconds / 60)} minutes.` }, { status: 429 })
 
   // Check image_uploads limit
   const uploadCheck = await checkLimit(user.id, plan, 'image_uploads')
@@ -63,7 +68,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Upload failed: ' + uploadError.message }, { status: 500 })
   }
 
-  await incrementUsage(user.id, 'image_uploads')
+  await Promise.all([
+    incrementUsage(user.id, 'image_uploads'),
+    incrementRateLimit(user.id, 'image_uploads'),
+  ])
 
   const { data: { publicUrl } } = supabaseAdmin.storage.from('post-images').getPublicUrl(fileName)
   return NextResponse.json({ url: publicUrl, path: fileName })

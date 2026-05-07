@@ -54,12 +54,14 @@ type Tab = 'ai' | 'voice' | 'story'
 
 function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; postsLimit: number; monthName: string }) {
   const [loading, setLoading] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [msgIdx, setMsgIdx] = useState(0)
   const [result, setResult] = useState<{ postsGenerated: number; nextPostDate: string | null } | null>(null)
   const [error, setError] = useState('')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   async function handleBatchGenerate() {
+    setShowConfirm(false)
     setLoading(true); setError(''); setResult(null); setMsgIdx(0)
     intervalRef.current = setInterval(() => {
       setMsgIdx(i => (i + 1) % BATCH_MESSAGES.length)
@@ -100,6 +102,37 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
     )
   }
 
+  // Confirmation dialog
+  if (showConfirm) {
+    return (
+      <Card className="mb-6 border-amber-200 bg-amber-50 shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="font-semibold text-amber-900 text-base">Generate {postsLimit} posts for {monthName}?</div>
+              <div className="text-sm text-amber-700 mt-1 leading-relaxed">
+                AI will write up to <strong>{postsLimit} LinkedIn posts</strong> based on your profile, voice, and content pillars — then schedule them across the month.
+                This uses <strong>1 batch run</strong> from your monthly quota.
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleBatchGenerate} size="sm" className="gap-1.5 bg-[#0B458B] hover:bg-[#083670]">
+              <Sparkles className="w-3.5 h-3.5" />
+              Confirm &amp; Generate
+            </Button>
+            <Button onClick={() => setShowConfirm(false)} size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100">
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="mb-6 border-[#0B458B]/20 bg-gradient-to-br from-[#0B458B]/5 to-blue-50 shadow-sm">
       <CardContent className="pt-6">
@@ -119,7 +152,7 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
                 <div className="text-[12px] text-slate-500 text-center">{BATCH_MESSAGES[msgIdx]}</div>
               </div>
             ) : (
-              <Button onClick={handleBatchGenerate} className="gap-2 whitespace-nowrap shadow-sm hover:shadow-md transition-shadow">
+              <Button onClick={() => setShowConfirm(true)} className="gap-2 whitespace-nowrap shadow-sm hover:shadow-md transition-shadow">
                 <Sparkles className="w-4 h-4" />
                 Generate my {postsLimit} posts for {monthName} →
               </Button>
