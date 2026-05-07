@@ -12,10 +12,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'NEXT_PUBLIC_APP_URL is not set' }, { status: 500 })
   }
 
-  const schedule = await qstash.schedules.create({
-    destination: `${appUrl}/api/cron/publish`,
-    cron: '*/15 * * * *',
-  })
+  const schedules = [
+    { name: 'publish',        path: '/api/cron/publish',        cron: '*/15 * * * *' },
+    { name: 'weekly-digest',  path: '/api/cron/weekly-digest',  cron: '0 9 * * 1'   },
+    { name: 'monthly-reset',  path: '/api/cron/monthly-reset',  cron: '0 0 1 * *'   },
+    { name: 'sync-sheets',    path: '/api/admin/sync-sheets',   cron: '0 0 * * *'   },
+  ]
 
-  return NextResponse.json({ scheduleId: schedule.scheduleId })
+  const results: Record<string, string> = {}
+
+  for (const s of schedules) {
+    try {
+      const schedule = await qstash.schedules.create({
+        destination: `${appUrl}${s.path}`,
+        cron: s.cron,
+      })
+      results[s.name] = schedule.scheduleId
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return NextResponse.json({ error: `Failed to create ${s.name} schedule: ${message}`, results }, { status: 500 })
+    }
+  }
+
+  return NextResponse.json({ ok: true, schedules: results })
 }

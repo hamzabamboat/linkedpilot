@@ -144,15 +144,18 @@ export default function OnboardingPage() {
             </div>
             <div className="flex flex-col gap-5">
               {[
-                { label: 'Full name', key: 'name', placeholder: 'Arjun Mehta' },
-                { label: 'Role / Title', key: 'role', placeholder: 'Founder & CEO' },
-                { label: 'Industry', key: 'industry', placeholder: 'SaaS / Fintech / Healthcare...' },
-                { label: 'Company', key: 'company', placeholder: 'Company name' },
-                { label: 'Years of experience', key: 'years_experience', placeholder: '8', type: 'number' },
-                { label: 'LinkedIn profile URL', key: 'linkedin_url', placeholder: 'https://linkedin.com/in/yourname' },
+                { label: 'Full name', key: 'name', placeholder: 'Arjun Mehta', required: true },
+                { label: 'Role / Title', key: 'role', placeholder: 'e.g. Founder, Student, Consultant', required: true },
+                { label: 'Industry / Institution', key: 'industry', placeholder: 'e.g. SaaS, Fintech, IIT Bombay', required: true },
+                { label: 'LinkedIn profile URL', key: 'linkedin_url', placeholder: 'https://linkedin.com/in/yourname', required: true },
+                { label: 'Company / College', key: 'company', placeholder: 'Company or institution name', required: false },
+                { label: 'Years of experience', key: 'years_experience', placeholder: '8', type: 'number', required: false },
               ].map(field => (
                 <div key={field.key}>
-                  <Label className="mb-1.5">{field.label}</Label>
+                  <Label className="mb-1.5">
+                    {field.label}
+                    {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                  </Label>
                   <Input
                     type={field.type || 'text'}
                     value={form[field.key as keyof FormData] as string}
@@ -161,9 +164,15 @@ export default function OnboardingPage() {
                   />
                 </div>
               ))}
+              <p className="text-[12px] text-slate-400 mt-1">
+                The more you fill out, the better we can personalise your content and match your voice exactly.
+              </p>
             </div>
             <NavButtons onNext={() => {
-              if (!form.name || !form.role || !form.industry) { setError('Please fill in name, role, and industry.'); return }
+              if (!form.name || !form.role || !form.industry || !form.linkedin_url) {
+                setError('Please fill in your name, role, industry, and LinkedIn URL.')
+                return
+              }
               nextStep()
             }} step={step} />
           </div>

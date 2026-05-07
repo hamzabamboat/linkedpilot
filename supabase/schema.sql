@@ -147,6 +147,25 @@ create table if not exists post_analytics (
   captured_at timestamptz default now()
 );
 
+-- Add subscription_count to track resubscriptions
+alter table users add column if not exists subscription_count integer not null default 0;
+
+-- Access codes for free plan passes
+create table if not exists access_codes (
+  id uuid default gen_random_uuid() primary key,
+  code text unique not null,
+  plan text not null check (plan in ('starter', 'standard', 'pro')),
+  max_uses integer not null default 1,
+  uses_count integer not null default 0,
+  expires_at timestamptz,
+  created_by text,
+  is_active boolean not null default true,
+  created_at timestamptz default now()
+);
+
+create index if not exists access_codes_code_idx on access_codes(code);
+create index if not exists access_codes_active_idx on access_codes(is_active) where is_active = true;
+
 create index if not exists users_linkedin_id_idx on users(linkedin_id);
 create index if not exists posts_user_id_idx on posts(user_id);
 create index if not exists posts_status_scheduled_idx on posts(status, scheduled_at) where status = 'scheduled';
@@ -158,4 +177,20 @@ create index if not exists image_briefs_user_id_idx on image_briefs(user_id);
 create index if not exists trends_cache_industry_idx on trends_cache(industry);
 create index if not exists post_suggestions_user_id_idx on post_suggestions(user_id);
 create index if not exists subscriptions_user_id_idx on subscriptions(user_id);
+
+-- Image URLs for story bank and posts
+alter table story_bank add column if not exists image_urls text[] default '{}';
+alter table posts add column if not exists image_urls text[] default '{}';
+
+-- LinkedIn profile analyses
+create table if not exists profile_analyses (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references users(id) on delete cascade,
+  score integer not null,
+  breakdown jsonb not null default '{}',
+  improvements jsonb not null default '[]',
+  analysed_at timestamptz default now()
+);
+
+create index if not exists profile_analyses_user_id_idx on profile_analyses(user_id);
 create index if not exists subscriptions_razorpay_id_idx on subscriptions(razorpay_subscription_id);

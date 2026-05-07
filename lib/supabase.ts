@@ -8,10 +8,23 @@ export type User = {
   linkedin_picture: string | null
   linkedin_access_token: string | null
   linkedin_token_expires_at: string | null
-  subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled'
+  subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'access_code'
   trial_posts_used: number
+  subscription_count: number
   created_at: string
   updated_at: string
+}
+
+export type AccessCode = {
+  id: string
+  code: string
+  plan: 'starter' | 'standard' | 'pro'
+  max_uses: number
+  uses_count: number
+  expires_at: string | null
+  created_by: string | null
+  is_active: boolean
+  created_at: string
 }
 
 export type UserProfile = {

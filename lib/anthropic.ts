@@ -76,7 +76,7 @@ LinkedIn post rules:
 1. First line must be a scroll-stopper hook — no "I" to open, no generic starters
 2. Short paragraphs (1-3 lines) with blank lines between
 3. End with a question, strong CTA, or powerful closing
-4. 1-3 relevant hashtags at the very end only
+4. HASHTAGS (MANDATORY): Always add 5-8 hashtags on a new line after the post. Mix: 2 large (1M+ followers, e.g. #Leadership #Entrepreneurship), 3 medium (100k-1M, e.g. #StartupIndia #ProductManagement), 2-3 niche (under 100k, specific to their industry/topic). Never use #instagood, #love, #follow. Base hashtags on industry, content pillar, and post topic.
 5. 150-300 words for most posts (up to 500 for deep insights)
 6. Sound like a human, not a press release
 7. Match the author's exact sentence length, vocabulary, and rhythm from their writing sample${avoidTopics}`
@@ -192,6 +192,89 @@ Format:
 
   const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
   return text.split(/---ANGLE \d+---/).map(s => s.trim()).filter(Boolean)
+}
+
+export async function analyzeLinkedInProfile(profileData: {
+  name?: string
+  headline?: string
+  about?: string
+  industry?: string
+  role?: string
+  writingSample?: string
+}): Promise<{ score: number; breakdown: Record<string, { score: number; max: number; tip: string }>; improvements: string[] }> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1200,
+    messages: [{
+      role: 'user',
+      content: `Analyse this LinkedIn profile and score it out of 100. Give scores for each category and specific improvement tips.
+
+Profile data:
+- Name: ${profileData.name || 'Not provided'}
+- Headline/Role: ${profileData.headline || profileData.role || 'Not provided'}
+- About/Bio: ${profileData.about || 'Not provided'}
+- Industry: ${profileData.industry || 'Not provided'}
+- Writing sample: ${profileData.writingSample ? profileData.writingSample.slice(0, 300) : 'Not provided'}
+
+Score these 5 categories (20 pts each):
+1. Headline (20pts): Is it specific, value-driven, and keyword-rich?
+2. About section (20pts): Does it tell a compelling story with a clear CTA?
+3. Profile completeness (20pts): Are all key sections filled?
+4. Content consistency (20pts): Does the writing show a clear voice and expertise?
+5. Engagement potential (20pts): Would this profile attract the right connections?
+
+Respond ONLY with a valid JSON object exactly like this:
+{
+  "score": <total 0-100>,
+  "breakdown": {
+    "headline": { "score": <0-20>, "max": 20, "tip": "<specific improvement>" },
+    "about": { "score": <0-20>, "max": 20, "tip": "<specific improvement>" },
+    "completeness": { "score": <0-20>, "max": 20, "tip": "<specific improvement>" },
+    "consistency": { "score": <0-20>, "max": 20, "tip": "<specific improvement>" },
+    "engagement": { "score": <0-20>, "max": 20, "tip": "<specific improvement>" }
+  },
+  "improvements": ["<tip 1>", "<tip 2>", "<tip 3>"]
+}`,
+    }],
+  })
+
+  try {
+    const text = msg.content[0].type === 'text' ? msg.content[0].text : '{}'
+    const match = text.match(/\{[\s\S]*\}/)
+    return match ? JSON.parse(match[0]) : { score: 50, breakdown: {}, improvements: [] }
+  } catch {
+    return { score: 50, breakdown: {}, improvements: [] }
+  }
+}
+
+export async function generateImageSuggestions(postContent: string, industry: string): Promise<Array<{ icon: string; suggestion: string; why: string }>> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 600,
+    messages: [{
+      role: 'user',
+      content: `Based on this LinkedIn post, suggest 3-4 image types that would maximise reach and engagement.
+
+Post: "${postContent.slice(0, 400)}"
+Industry: ${industry}
+
+For each suggestion provide: a relevant emoji icon, a specific image description, and a one-line reason why it works.
+
+Respond ONLY with a JSON array:
+[
+  { "icon": "📸", "suggestion": "<specific image description>", "why": "<one line why it works>" },
+  ...
+]`,
+    }],
+  })
+
+  try {
+    const text = msg.content[0].type === 'text' ? msg.content[0].text : '[]'
+    const match = text.match(/\[[\s\S]*\]/)
+    return match ? JSON.parse(match[0]) : []
+  } catch {
+    return []
+  }
 }
 
 export async function generateSuggestionsForUser(

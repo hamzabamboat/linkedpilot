@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendWelcomeEmail } from '@/lib/email'
+import { runProfileAnalysis } from '@/lib/profile-analyzer'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
@@ -92,6 +93,9 @@ export async function GET(request: NextRequest) {
         console.error
       )
     }
+
+    // Run profile analysis in background (don't await — shouldn't block redirect)
+    runProfileAnalysis(user.id).catch(console.error)
 
     // Check existing subscription to pre-populate the sub_status cookie
     const { data: sub } = await supabaseAdmin

@@ -20,7 +20,150 @@ import {
   ArrowRight,
   TrendingUp,
   Clock,
+  CheckCircle2,
+  Circle,
+  RefreshCw,
 } from 'lucide-react'
+
+type ProfileAnalysis = {
+  score: number
+  breakdown: Record<string, { score: number; max: number; tip: string }>
+  improvements: string[]
+  analysed_at: string
+}
+
+type RoadmapStep = { label: string; done: boolean; current: boolean }
+
+function getRoadmapSteps(
+  preference: string,
+  profileComplete: boolean,
+  pillarsSet: boolean,
+  hasPost: boolean,
+): { title: string; steps: RoadmapStep[] } {
+  if (preference === 'autopilot') {
+    const steps = [
+      { label: 'Complete your profile', done: profileComplete, current: !profileComplete },
+      { label: 'Set your content pillars', done: pillarsSet, current: profileComplete && !pillarsSet },
+      { label: 'Upload your first images', done: false, current: profileComplete && pillarsSet && !hasPost },
+      { label: 'Let AI generate your first batch', done: hasPost, current: false },
+      { label: 'Posts go live automatically', done: false, current: hasPost },
+    ]
+    return { title: 'Your path to full autopilot', steps }
+  }
+  if (preference === 'suggest') {
+    const steps = [
+      { label: 'Complete your profile', done: profileComplete, current: !profileComplete },
+      { label: 'Browse today\'s suggestions', done: false, current: profileComplete },
+      { label: 'Pick an idea you like', done: false, current: false },
+      { label: 'Generate and edit the post', done: hasPost, current: false },
+      { label: 'Schedule it yourself', done: false, current: hasPost },
+    ]
+    return { title: 'Your quick start guide', steps }
+  }
+  // approve (default)
+  const steps = [
+    { label: 'Complete your profile', done: profileComplete, current: !profileComplete },
+    { label: 'Generate your first post', done: hasPost, current: profileComplete && !hasPost },
+    { label: 'Approve it via email', done: false, current: hasPost },
+    { label: 'Watch it go live on LinkedIn', done: false, current: false },
+    { label: 'Review analytics after 7 days', done: false, current: false },
+  ]
+  return { title: 'Your path to growth', steps }
+}
+
+function RoadmapPanel({ profile, posts, analysis, onReanalyse, reanalysing }: {
+  profile: UserProfile | null
+  posts: Post[]
+  analysis: ProfileAnalysis | null
+  onReanalyse: () => void
+  reanalysing: boolean
+}) {
+  const preference = (profile as Record<string, unknown>)?.control_preference as string || 'approve'
+  const profileComplete = !!(profile?.name && profile?.industry && profile?.content_pillars?.length)
+  const pillarsSet = !!(profile?.content_pillars?.length)
+  const hasPost = posts.length > 0
+  const { title, steps } = getRoadmapSteps(preference, profileComplete, pillarsSet, hasPost)
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Roadmap card */}
+      <Card className="border-slate-100 shadow-sm">
+        <CardContent className="pt-5 pb-5">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">{title}</div>
+          <div className="flex flex-col gap-2.5">
+            {steps.map((step, i) => (
+              <div key={i} className={`flex items-center gap-2.5 text-[13px] ${step.done ? 'text-slate-300' : step.current ? 'text-[#0B458B] font-semibold' : 'text-slate-400'}`}>
+                {step.done
+                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" strokeWidth={2} />
+                  : step.current
+                  ? <div className="w-4 h-4 rounded-full border-2 border-[#0B458B] bg-[#0B458B]/10 shrink-0" />
+                  : <Circle className="w-4 h-4 text-slate-200 shrink-0" strokeWidth={2} />
+                }
+                <span className={step.done ? 'line-through' : ''}>{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Profile score card */}
+      <Card className="border-slate-100 shadow-sm">
+        <CardContent className="pt-5 pb-5">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">LinkedIn Profile Score</div>
+          {analysis ? (
+            <>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative w-14 h-14 shrink-0">
+                  <svg viewBox="0 0 56 56" className="w-14 h-14 -rotate-90">
+                    <circle cx={28} cy={28} r={22} fill="none" stroke="#f1f5f9" strokeWidth={5} />
+                    <circle cx={28} cy={28} r={22} fill="none" stroke="#0B458B" strokeWidth={5}
+                      strokeDasharray={`${(analysis.score / 100) * 2 * Math.PI * 22} ${2 * Math.PI * 22}`}
+                      strokeLinecap="round" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[13px] font-extrabold text-[#0B458B]">{analysis.score}</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-slate-900">{analysis.score}/100</div>
+                  <div className="text-[11px] text-slate-400">
+                    {new Date(analysis.analysed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  </div>
+                </div>
+              </div>
+              {analysis.improvements?.slice(0, 3).map((tip, i) => (
+                <div key={i} className="flex gap-2 items-start text-[12px] text-slate-500 mb-1.5">
+                  <span className="text-[#0B458B] mt-0.5 shrink-0">→</span>
+                  <span>{tip}</span>
+                </div>
+              ))}
+              <button
+                onClick={onReanalyse}
+                disabled={reanalysing}
+                className="mt-3 flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-brand transition-colors"
+              >
+                <RefreshCw className={`w-3 h-3 ${reanalysing ? 'animate-spin' : ''}`} />
+                {reanalysing ? 'Analysing...' : 'Re-analyse now'}
+              </button>
+            </>
+          ) : (
+            <div className="text-center py-3">
+              <div className="text-[12px] text-slate-400 mb-3">No analysis yet</div>
+              <button
+                onClick={onReanalyse}
+                disabled={reanalysing}
+                className="text-[12px] text-brand font-semibold hover:underline flex items-center gap-1 mx-auto"
+              >
+                <RefreshCw className={`w-3 h-3 ${reanalysing ? 'animate-spin' : ''}`} />
+                {reanalysing ? 'Analysing...' : 'Analyse my profile'}
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 type Score = { score: number; breakdown: { posting_consistency: number; avg_engagement: number; profile_completeness: number }; recorded_at: string }
 
@@ -53,6 +196,8 @@ function DashboardContent() {
   const [score, setScore] = useState<Score | null>(null)
   const [suggestions, setSuggestions] = useState<PostSuggestion[]>([])
   const [loading, setLoading] = useState(true)
+  const [profileAnalysis, setProfileAnalysis] = useState<ProfileAnalysis | null>(null)
+  const [reanalysing, setReanalysing] = useState(false)
 
   useEffect(() => {
     if (upgraded) toast.success('Subscription activated! Welcome to the plan.')
@@ -65,14 +210,16 @@ function DashboardContent() {
       const { user: u, profile: p } = await meRes.json()
       setUser(u); setProfile(p)
 
-      const [postsRes, scoreRes, suggestionsRes] = await Promise.all([
+      const [postsRes, scoreRes, suggestionsRes, analysisRes] = await Promise.all([
         supabase.from('posts').select('*').eq('user_id', u.id).order('created_at', { ascending: false }).limit(5),
         supabase.from('linkedin_scores').select('*').eq('user_id', u.id).order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('post_suggestions').select('*').eq('user_id', u.id).eq('status', 'pending').order('created_at', { ascending: false }).limit(3),
+        supabase.from('profile_analyses').select('*').eq('user_id', u.id).order('analysed_at', { ascending: false }).limit(1).maybeSingle(),
       ])
       setPosts(postsRes.data || [])
       setScore(scoreRes.data)
       setSuggestions(suggestionsRes.data || [])
+      setProfileAnalysis(analysisRes.data || null)
       setLoading(false)
     }
     load()
@@ -101,6 +248,17 @@ function DashboardContent() {
 
   if (!user) return null
 
+  async function handleReanalyse() {
+    setReanalysing(true)
+    try {
+      const res = await fetch('/api/profile/analyse', { method: 'POST' })
+      const data = await res.json()
+      if (!data.error) setProfileAnalysis({ ...data, analysed_at: new Date().toISOString() })
+    } finally {
+      setReanalysing(false)
+    }
+  }
+
   const scheduledPosts = posts.filter(p => p.status === 'scheduled')
   const nextPost = scheduledPosts.sort((a, b) => new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime())[0]
   const postsUsed = profile?.posts_used_this_month || 0
@@ -110,7 +268,8 @@ function DashboardContent() {
   const usagePct = Math.min((postsUsed / postsLimit) * 100, 100)
 
   return (
-    <div className="p-4 md:p-7 max-w-[1000px]">
+    <div className="flex xl:gap-0">
+    <div className="p-4 md:p-7 flex-1 max-w-[1000px]">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6 md:mb-8">
         <div>
@@ -306,6 +465,16 @@ function DashboardContent() {
         </Card>
       </div>
     </div>
+    <div className="hidden xl:block w-72 pt-7 pr-6 shrink-0">
+      <RoadmapPanel
+        profile={profile}
+        posts={posts}
+        analysis={profileAnalysis}
+        onReanalyse={handleReanalyse}
+        reanalysing={reanalysing}
+      />
+    </div>
+  </div>
   )
 }
 

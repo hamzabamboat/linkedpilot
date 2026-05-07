@@ -5,6 +5,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userId = request.cookies.get('session_user_id')?.value
 
+  // Admin protection — check admin_session cookie matches ADMIN_SECRET
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    const adminSession = request.cookies.get('admin_session')?.value
+    if (!adminSession || adminSession !== process.env.ADMIN_SECRET) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+    return NextResponse.next()
+  }
+
   // Only protect dashboard and onboarding
   const isDashboard = pathname.startsWith('/dashboard')
   const isOnboarding = pathname === '/onboarding'
@@ -17,14 +26,34 @@ export async function middleware(request: NextRequest) {
   // Onboarding just needs a logged-in user
   if (isOnboarding) return NextResponse.next()
 
-  // Dashboard: check sub or trial
+  // Dashboard: check sub, trial, or access_code
   const cachedStatus = request.cookies.get('sub_status')?.value
-  if (cachedStatus === 'active' || cachedStatus === 'trial') return NextResponse.next()
+  if (cachedStatus === 'active' || cachedStatus === 'trial' || cachedStatus === 'access_code') {
+    return NextResponse.next()
+  }
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('subscription_status')
+    .eq('id', userId)
+    .single()
+
+  if (user?.subscription_status === 'access_code') {
+    const response = NextResponse.next()
+    response.cookies.set('sub_status', 'access_code', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    })
+    return response
+  }
 
   const { data: sub } = await supabase
     .from('subscriptions')
@@ -55,5 +84,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding'],
+  matcher: ['/dashboard/:path*', '/onboarding', '/admin/:path*'],
 }

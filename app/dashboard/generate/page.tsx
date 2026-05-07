@@ -26,7 +26,18 @@ import {
   Check,
   Save,
   ArrowLeft,
+  ImageIcon,
+  Upload,
+  X,
 } from 'lucide-react'
+
+const LOADING_MESSAGES = [
+  'Researching your industry...',
+  'Writing in your voice...',
+  'Crafting the hook...',
+  'Adding hashtags...',
+  'Polishing the post...',
+]
 
 type Tab = 'ai' | 'voice' | 'story'
 
@@ -56,6 +67,17 @@ function GenerateContent() {
   const mediaRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0])
+  const loadingMsgIdx = useRef(0)
+
+  const [imageSuggestions, setImageSuggestions] = useState<Array<{ icon: string; suggestion: string; why: string }>>([])
+  const [fetchingImages, setFetchingImages] = useState(false)
+
+  const [voiceImages, setVoiceImages] = useState<File[]>([])
+  const [storyImages, setStoryImages] = useState<File[]>([])
+  const voiceImgRef = useRef<HTMLInputElement>(null)
+  const storyImgRef = useRef<HTMLInputElement>(null)
 
   const [stories, setStories] = useState<StoryBank[]>([])
   const [newStory, setNewStory] = useState('')
@@ -114,21 +136,49 @@ function GenerateContent() {
   }
 
   async function handleGenerate() {
-    setLoading(true); setError(''); setGeneratedPosts([]); setSelectedPost(null)
-    const body: Record<string, unknown> = { additionalContext }
-    if (tab === 'ai') body.topic = topic
-    if (tab === 'voice') body.voiceNoteId = voiceNoteId
-    if (tab === 'story' && selectedStory) body.storyBankId = selectedStory.id
+    setLoading(true); setError(''); setGeneratedPosts([]); setSelectedPost(null); setImageSuggestions([])
+    loadingMsgIdx.current = 0
+    setLoadingMsg(LOADING_MESSAGES[0])
+    const interval = setInterval(() => {
+      loadingMsgIdx.current = (loadingMsgIdx.current + 1) % LOADING_MESSAGES.length
+      setLoadingMsg(LOADING_MESSAGES[loadingMsgIdx.current])
+    }, 2000)
 
-    const res = await fetch('/api/posts/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    const data = await res.json()
-    setLoading(false)
-    if (data.error) { setError(data.error === 'trial_exhausted' ? 'Post limit reached. Upgrade your plan to continue.' : data.error); return }
-    setGeneratedPosts(data.posts || [])
+    try {
+      const body: Record<string, unknown> = { additionalContext }
+      if (tab === 'ai') body.topic = topic
+      if (tab === 'voice') body.voiceNoteId = voiceNoteId
+      if (tab === 'story' && selectedStory) body.storyBankId = selectedStory.id
+
+      const res = await fetch('/api/posts/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const data = await res.json()
+      if (data.error) { setError(data.error === 'trial_exhausted' ? 'Post limit reached. Upgrade your plan to continue.' : data.error); return }
+      setGeneratedPosts(data.posts || [])
+    } finally {
+      clearInterval(interval)
+      setLoading(false)
+    }
   }
 
   function selectPost(post: { id: string; content: string }) {
     setSelectedPost(post); setEditContent(post.content); setActionResult(''); setScheduleDate('')
+    setImageSuggestions([])
+    fetchImageSuggestions(post.content)
+  }
+
+  async function fetchImageSuggestions(postContent: string) {
+    setFetchingImages(true)
+    try {
+      const res = await fetch('/api/posts/image-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postContent }),
+      })
+      const data = await res.json()
+      if (!data.error) setImageSuggestions(data.suggestions || [])
+    } finally {
+      setFetchingImages(false)
+    }
   }
 
   async function schedulePost() {
@@ -211,7 +261,7 @@ function GenerateContent() {
                   className="mt-1.5 border-slate-200 focus:border-brand/50 text-[14px]"
                 />
               </div>
-              <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} />
+              <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} loadingMsg={loadingMsg} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -264,7 +314,31 @@ function GenerateContent() {
                       <p className="text-sm text-slate-600 leading-relaxed">{transcript}</p>
                     </div>
                   )}
-                  <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} />
+                  {/* Voice note image upload */}
+                  <div>
+                    <Label className="text-[13px] font-semibold text-slate-700">Attach images <span className="text-slate-400 font-normal">(optional, up to 5)</span></Label>
+                    <div className="mt-2 flex flex-wrap gap-2 items-center">
+                      {voiceImages.map((f, i) => (
+                        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                          <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                          <button onClick={() => setVoiceImages(v => v.filter((_, j) => j !== i))}
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <X className="w-4 h-4 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      {voiceImages.length < 5 && (
+                        <button onClick={() => voiceImgRef.current?.click()}
+                          className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 hover:border-brand/50 transition-colors">
+                          <Upload className="w-4 h-4 text-slate-300" />
+                          <span className="text-[10px] text-slate-400">Add</span>
+                        </button>
+                      )}
+                      <input ref={voiceImgRef} type="file" accept="image/*" multiple className="hidden"
+                        onChange={e => { const files = Array.from(e.target.files || []); setVoiceImages(v => [...v, ...files].slice(0, 5)); e.target.value = '' }} />
+                    </div>
+                  </div>
+                  <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} loadingMsg={loadingMsg} />
                 </div>
               )}
             </CardContent>
@@ -286,6 +360,30 @@ function GenerateContent() {
                   placeholder="This week I had a tough conversation with a potential investor..."
                   className="min-h-[130px] resize-none border-slate-200 text-[14px]"
                 />
+                {/* Story image upload */}
+                <div>
+                  <Label className="text-[13px] font-semibold text-slate-700">Attach images <span className="text-slate-400 font-normal">(optional, up to 5)</span></Label>
+                  <div className="mt-2 flex flex-wrap gap-2 items-center">
+                    {storyImages.map((f, i) => (
+                      <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                        <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                        <button onClick={() => setStoryImages(v => v.filter((_, j) => j !== i))}
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <X className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    {storyImages.length < 5 && (
+                      <button onClick={() => storyImgRef.current?.click()}
+                        className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 hover:border-emerald-400/60 transition-colors">
+                        <Upload className="w-4 h-4 text-slate-300" />
+                        <span className="text-[10px] text-slate-400">Add</span>
+                      </button>
+                    )}
+                    <input ref={storyImgRef} type="file" accept="image/*" multiple className="hidden"
+                      onChange={e => { const files = Array.from(e.target.files || []); setStoryImages(v => [...v, ...files].slice(0, 5)); e.target.value = '' }} />
+                  </div>
+                </div>
                 <Button
                   onClick={saveStory}
                   disabled={savingStory || !newStory.trim()}
@@ -342,7 +440,7 @@ function GenerateContent() {
                           className="mt-1.5 border-slate-200 text-[14px]"
                         />
                       </div>
-                      <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} />
+                      <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} loadingMsg={loadingMsg} />
                     </CardContent>
                   </Card>
                 )}
@@ -443,6 +541,33 @@ function GenerateContent() {
                 <Mail className="size-4" /> Send Approval Email
               </Button>
             </div>
+
+            {/* Image suggestions */}
+            {(fetchingImages || imageSuggestions.length > 0) && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <div className="text-[13px] font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-slate-400" />
+                  Image Ideas
+                </div>
+                {fetchingImages ? (
+                  <div className="flex items-center gap-2 text-[13px] text-slate-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating ideas...
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {imageSuggestions.map((s, i) => (
+                      <div key={i} className="flex gap-3 bg-slate-50 rounded-xl p-3.5 border border-slate-100">
+                        <span className="text-xl shrink-0">{s.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold text-slate-800">{s.suggestion}</div>
+                          <div className="text-[12px] text-slate-400 mt-0.5">{s.why}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -450,7 +575,7 @@ function GenerateContent() {
   )
 }
 
-function GenerateButton({ loading, disabled, onClick }: { loading: boolean; disabled: boolean; onClick: () => void }) {
+function GenerateButton({ loading, disabled, onClick, loadingMsg }: { loading: boolean; disabled: boolean; onClick: () => void; loadingMsg?: string }) {
   return (
     <Button
       onClick={onClick}
@@ -458,7 +583,7 @@ function GenerateButton({ loading, disabled, onClick }: { loading: boolean; disa
       className="w-full mt-4 h-12 text-[15px] font-bold gap-2 shadow-sm hover:shadow-md transition-shadow"
     >
       {loading
-        ? <><Loader2 className="size-4 animate-spin" /> Generating 3 post options...</>
+        ? <><Loader2 className="size-4 animate-spin" /> {loadingMsg || 'Generating...'}</>
         : <><Sparkles className="size-4" /> Generate Posts</>
       }
     </Button>

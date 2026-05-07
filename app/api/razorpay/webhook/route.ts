@@ -98,6 +98,19 @@ export async function POST(request: NextRequest) {
         .eq('user_id', resolvedUserId)
     }
 
+    // Increment resubscription count on first activation
+    if (newStatus === 'active') {
+      const { data: currentUser } = await supabaseAdmin
+        .from('users')
+        .select('subscription_count')
+        .eq('id', resolvedUserId)
+        .single()
+      await supabaseAdmin
+        .from('users')
+        .update({ subscription_count: (currentUser?.subscription_count ?? 0) + 1 })
+        .eq('id', resolvedUserId)
+    }
+
     // Trial payment failed — downgrade to read-only (0 posts limit)
     if (newStatus === 'halted') {
       await supabaseAdmin
