@@ -9,12 +9,19 @@ export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  console.log('[analyse route] POST called for user:', user.id)
+
   try {
     const result = await runProfileAnalysis(user.id)
+    console.log('[analyse route] Success, score:', result.score)
     return NextResponse.json(result)
   } catch (err) {
-    console.error('Profile analysis error:', err)
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[analyse route] Analysis failed:', message)
+    return NextResponse.json(
+      { error: message || 'Analysis failed — check server logs for details.' },
+      { status: 500 }
+    )
   }
 }
 
