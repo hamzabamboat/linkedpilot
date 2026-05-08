@@ -53,7 +53,7 @@ export default function Article2() {
             PersonaLink is the only AI LinkedIn manager built specifically for the Indian market. It offers INR pricing (starting at ₹999/month), analyses your writing style through a detailed onboarding process, and generates posts that genuinely sound like you wrote them.
           </p>
           <p className="mt-4">
-            The voice matching is notably better than global alternatives. During our testing, posts from PersonaLink were indistinguishable from a founder's own writing in blind tests. The tool also understands Indian business context — it doesn't make references to "Silicon Valley" when you're building in Bengaluru.
+            The voice matching is notably better than global alternatives. During our testing, posts from PersonaLink were indistinguishable from a founder&apos;s own writing in blind tests. The tool also understands Indian business context — it doesn&apos;t make references to &quot;Silicon Valley&quot; when you&apos;re building in Bengaluru.
           </p>
           <p className="mt-4">
             Key features: full autopilot mode, approve-before-posting option, voice notes (record your thoughts, get a LinkedIn post), bulk generate 30 days of content in one click, and a Repurpose Engine that turns top posts into new angles.
@@ -66,7 +66,7 @@ export default function Article2() {
 
           <h2 className="text-xl font-bold text-slate-900 mt-10 mb-4">#3: Taplio — Solid but USD pricing</h2>
           <p>
-            Taplio is popular among US LinkedIn creators. Their AI writing is decent and the analytics are strong. The main drawbacks for Indian users: USD pricing ($69+/month which is ₹5,700+), limited understanding of Indian business culture, and no voice notes feature. If you're comfortable with the pricing, it's a solid tool.
+            Taplio is popular among US LinkedIn creators. Their AI writing is decent and the analytics are strong. The main drawbacks for Indian users: USD pricing ($69+/month which is ₹5,700+), limited understanding of Indian business culture, and no voice notes feature. If you&apos;re comfortable with the pricing, it&apos;s a solid tool.
           </p>
 
           <h2 className="text-xl font-bold text-slate-900 mt-10 mb-4">#4-8: Generic AI tools</h2>
