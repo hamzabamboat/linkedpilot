@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Script from 'next/script'
+import { PLAN_FEATURES } from '@/lib/supabase'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Check, ArrowRight, Zap } from 'lucide-react'
-import { PLAN_FEATURES } from '@/lib/supabase'
+import { Loader2, Check } from 'lucide-react'
 
 const PLANS = [
   { id: 'starter', label: 'Starter', price: 999, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
@@ -14,102 +16,150 @@ const PLANS = [
 ]
 
 export default function UpgradePage() {
-  const [loading, setLoading] = useState<string | null>(null)
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null)
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
 
-  async function handleUpgrade(planId: string) {
-    setLoading(planId)
+  useEffect(() => {
+    fetch('/api/me').then(r => r.json()).then(data => {
+      if (!data.user) { router.replace('/'); return }
+      setUser(data.user)
+      setLoading(false)
+    })
+  }, [router])
+
+  async function handleSubscribe(plan: { id: string; label: string; color: string }) {
+    setUpgradingPlan(plan.id)
     try {
-      const res = await fetch('/api/payments/create-order', {
+      const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify({ planId: plan.id }),
       })
       const data = await res.json()
-      if (data.error) { alert(data.error); setLoading(null); return }
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
-      }
+      if (data.error) { toast.error(data.error); setUpgradingPlan(null); return }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rzp = new (window as any).Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        subscription_id: data.subscription_id,
+        name: 'PersonaLink',
+        description: `${plan.label} Plan — 7-day free trial`,
+        theme: { color: plan.color },
+        prefill: { name: user?.name, email: user?.email },
+        handler: async (response: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
+          const verifyRes = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_subscription_id: response.razorpay_subscription_id,
+              razorpay_signature: response.razorpay_signature,
+              plan: plan.id,
+            }),
+          })
+          const verifyData = await verifyRes.json()
+          if (verifyData.error) { toast.error('Payment verification failed. Please contact support.'); setUpgradingPlan(null); return }
+          toast.success(`Welcome to ${plan.label}! Redirecting to your dashboard...`)
+          setTimeout(() => { window.location.href = '/dashboard' }, 1500)
+        },
+        modal: { ondismiss: () => setUpgradingPlan(null) },
+      })
+      rzp.open()
     } catch {
-      alert('Something went wrong. Please try again.')
-      setLoading(null)
+      toast.error('Something went wrong. Please try again.')
+      setUpgradingPlan(null)
     }
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="size-6 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b border-slate-200 px-6">
-        <div className="max-w-[900px] mx-auto h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center">
+    <>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      <div className="min-h-screen bg-slate-50">
+        <div className="bg-white border-b border-slate-200 px-6">
+          <div className="max-w-[860px] mx-auto h-16 flex items-center">
             <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
               <img src="/logo-text.png" alt="PersonaLink" className="h-7 w-auto" />
             </div>
-          </Link>
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">
-            ← Back to dashboard
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-[900px] mx-auto px-4 py-10 md:py-14">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-brand-light text-brand rounded-full px-4 py-1.5 text-sm font-semibold mb-4">
-            <Zap className="w-3.5 h-3.5" />
-            Upgrade your plan
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">
-            Choose your plan
-          </h1>
-          <p className="text-slate-500 text-base max-w-md mx-auto">
-            Start with a 7-day free trial. Cancel anytime.
+        </div>
+
+        <div className="max-w-[860px] mx-auto px-4 py-12">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-full px-4 py-1.5 text-[13px] font-semibold mb-4">
+              Your trial or subscription has ended
+            </div>
+            <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Choose your plan to continue</h1>
+            <p className="text-slate-500">Start your 7-day free trial — no charge until it ends. Cancel anytime.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {PLANS.map(plan => (
+              <Card
+                key={plan.id}
+                className="overflow-hidden relative"
+                style={{ border: `2px solid ${plan.color}30` }}
+              >
+                {plan.popular && (
+                  <div
+                    className="absolute top-0 inset-x-0 text-center text-[11px] font-bold py-1 text-white"
+                    style={{ background: plan.color }}
+                  >
+                    MOST POPULAR
+                  </div>
+                )}
+                <CardContent className={`${plan.popular ? 'pt-8' : 'pt-6'} pb-6 flex flex-col h-full`}>
+                  <div className={plan.popular ? 'mt-2' : ''}>
+                    <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: plan.color }}>
+                      {plan.label}
+                    </div>
+                    <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                      ₹{plan.price.toLocaleString('en-IN')}
+                      <span className="text-sm font-normal text-slate-400">/mo</span>
+                    </div>
+                    <div className="text-xs text-slate-400 mb-5 mt-0.5">{plan.posts} posts/month</div>
+                  </div>
+                  <div className="flex flex-col gap-2.5 mb-6 flex-1">
+                    {plan.features.map(f => (
+                      <div key={f} className="flex items-start gap-2.5 text-[13px] text-slate-600">
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: plan.color + '18' }}>
+                          <Check className="w-2.5 h-2.5" style={{ color: plan.color }} strokeWidth={2.5} />
+                        </div>
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    onClick={() => handleSubscribe(plan)}
+                    disabled={!!upgradingPlan}
+                    className="w-full text-white gap-2"
+                    style={{ background: plan.color }}
+                  >
+                    {upgradingPlan === plan.id ? (
+                      <><Loader2 className="size-4 animate-spin" /> Processing...</>
+                    ) : (
+                      'Start Free Trial'
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <p className="text-center text-xs text-slate-400 mt-6">
+            Card required to start trial. No charge for 7 days. Cancel any time from Settings.
           </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {PLANS.map(plan => (
-            <Card
-              key={plan.id}
-              className={`relative border-2 shadow-sm transition-shadow hover:shadow-md ${plan.popular ? 'border-brand shadow-md' : 'border-slate-200'}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-brand text-white text-xs font-bold px-3 py-1 rounded-full">Most popular</span>
-                </div>
-              )}
-              <CardContent className="pt-6 pb-6">
-                <div className="mb-5">
-                  <div className="font-bold text-lg text-slate-900 mb-1" style={{ color: plan.color }}>{plan.label}</div>
-                  <div className="text-3xl font-extrabold text-slate-900">
-                    ₹{plan.price.toLocaleString('en-IN')}
-                    <span className="text-base font-medium text-slate-400">/mo</span>
-                  </div>
-                  <div className="text-sm text-slate-500 mt-1">{plan.posts} posts/month</div>
-                </div>
-                <div className="flex flex-col gap-2 mb-6">
-                  {plan.features.map(f => (
-                    <div key={f} className="flex items-center gap-2 text-sm text-slate-600">
-                      <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: plan.color + '18' }}>
-                        <Check className="w-2.5 h-2.5" style={{ color: plan.color }} strokeWidth={2.5} />
-                      </div>
-                      {f}
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  onClick={() => handleUpgrade(plan.id)}
-                  disabled={loading === plan.id}
-                  className="w-full gap-2 font-semibold"
-                  style={{ background: plan.color }}
-                >
-                  {loading === plan.id ? 'Loading...' : (
-                    <>Start Free Trial <ArrowRight className="w-4 h-4" /></>
-                  )}
-                </Button>
-                <p className="text-center text-xs text-slate-400 mt-2">Free 7 days, then ₹{plan.price.toLocaleString('en-IN')}/mo</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </div>
-    </div>
+    </>
   )
 }

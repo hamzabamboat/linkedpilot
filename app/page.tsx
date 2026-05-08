@@ -263,7 +263,7 @@ function PricingSlider() {
       </motion.div>
 
       <Button
-        onClick={() => window.location.href = '/api/auth/linkedin'}
+        render={<a href="/api/auth/linkedin" />}
         className="w-full mt-7 h-14 text-base font-bold"
         style={{ background: plan.color }}
       >
@@ -296,7 +296,7 @@ function HomeContent() {
             <a href="#faq" className="px-4 py-2 text-slate-500 text-sm font-medium hover:text-slate-900 transition-colors">FAQ</a>
             <ThemeToggle />
             <Button
-              onClick={() => window.location.href = '/api/auth/linkedin'}
+              render={<a href="/api/auth/linkedin" />}
               className="h-9 px-5 text-sm font-semibold gap-2 shadow-sm"
             >
               <LinkedinIcon className="w-4 h-4" />
@@ -322,7 +322,7 @@ function HomeContent() {
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-3 text-slate-700 text-base font-medium border-b border-slate-100">Pricing</a>
             <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-3 text-slate-700 text-base font-medium border-b border-slate-100">FAQ</a>
             <Button
-              onClick={() => window.location.href = '/api/auth/linkedin'}
+              render={<a href="/api/auth/linkedin" />}
               className="w-full h-12 text-base font-semibold gap-2 mt-1"
             >
               <LinkedinIcon className="w-4 h-4" />
@@ -370,8 +370,8 @@ function HomeContent() {
 
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3">
               <Button
-                onClick={() => window.location.href = '/api/auth/linkedin'}
-                className="h-12 md:h-13 px-6 md:px-7 text-base font-bold gap-2.5 shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/25 transition-all duration-200 w-full sm:w-auto"
+                render={<a href="/api/auth/linkedin" />}
+                className="h-12 md:h-14 px-6 md:px-7 text-base font-bold gap-2.5 shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/25 transition-all duration-200 w-full sm:w-auto"
               >
                 <LinkedinIcon className="w-5 h-5" />
                 Connect LinkedIn — Free
@@ -529,18 +529,19 @@ function HomeContent() {
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={() => window.location.href = '/api/auth/linkedin'}
-                  className="w-full py-3 rounded-xl font-bold text-[15px] cursor-pointer transition-all duration-200 flex items-center justify-center gap-2"
+                <a
+                  href="/api/auth/linkedin"
+                  className="w-full py-3 rounded-xl font-bold text-[15px] transition-all duration-200 flex items-center justify-center gap-2"
                   style={{
                     border: p.popular ? 'none' : '1.5px solid #0B458B',
                     background: p.popular ? 'white' : 'transparent',
                     color: '#0B458B',
+                    textDecoration: 'none',
                   }}
                 >
                   Start Free Trial
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </a>
                 <div className="text-center text-[11px] mt-2" style={{ color: p.popular ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}>
                   Free for 7 days, then ₹{p.price.toLocaleString('en-IN')}/mo
                 </div>
@@ -582,7 +583,7 @@ function HomeContent() {
             <h2 className="text-[24px] md:text-[42px] font-extrabold text-white mb-4 tracking-tight">Start growing on LinkedIn today</h2>
             <p className="text-white/75 text-base md:text-lg mb-7 md:mb-9">No credit card required. Set up in 10 minutes.</p>
             <Button
-              onClick={() => window.location.href = '/api/auth/linkedin'}
+              render={<a href="/api/auth/linkedin" />}
               className="bg-white text-brand hover:bg-white/95 h-12 md:h-14 px-6 md:px-9 text-base md:text-[17px] font-bold shadow-xl shadow-black/20 gap-2.5 transition-all duration-200 hover:scale-105 w-full sm:w-auto"
             >
               <LinkedinIcon className="w-5 h-5" />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -33,6 +33,8 @@ type FormData = {
   control_preference: 'autopilot' | 'approve' | 'suggest' | ''; plan: string
 }
 
+const STORAGE_KEY = 'onboarding_progress'
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -47,6 +49,25 @@ export default function OnboardingPage() {
   const [codeError, setCodeError] = useState('')
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
+
+  // Restore progress from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const { step: savedStep, form: savedForm } = JSON.parse(saved)
+        if (savedStep) setStep(savedStep)
+        if (savedForm) setForm(savedForm)
+      }
+    } catch {}
+  }, [])
+
+  // Persist progress whenever step or form changes
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ step, form }))
+    } catch {}
+  }, [step, form])
 
   function nextStep() { setError(''); if (step < TOTAL_STEPS) setStep(s => s + 1) }
   function prevStep() { setError(''); if (step > 1) setStep(s => s - 1) }
@@ -85,6 +106,7 @@ export default function OnboardingPage() {
       })
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Failed to apply code'); setSaving(false); return }
+      sessionStorage.removeItem(STORAGE_KEY)
       router.push('/dashboard')
     } catch {
       setError('Network error. Please try again.')
@@ -100,6 +122,7 @@ export default function OnboardingPage() {
       })
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Failed to save'); setSaving(false); return }
+      sessionStorage.removeItem(STORAGE_KEY)
       router.push('/dashboard')
     } catch {
       setError('Network error. Please try again.')
@@ -455,7 +478,7 @@ export default function OnboardingPage() {
   )
 }
 
-function NavButtons({ onNext, onPrev, step }: { onNext: () => void; onPrev?: () => void; step: number }) {
+function NavButtons({ onNext, onPrev }: { onNext: () => void; onPrev?: () => void; step?: number }) {
   return (
     <div className="flex gap-3 mt-8">
       {onPrev && (
