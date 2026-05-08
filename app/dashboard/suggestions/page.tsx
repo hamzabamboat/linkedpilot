@@ -36,6 +36,9 @@ export default function SuggestionsPage() {
   const [repurposed, setRepurposed] = useState<string[]>([])
   const [repurposing, setRepurposing] = useState(false)
   const [plan, setPlan] = useState('starter')
+  const [userId, setUserId] = useState<string | null>(null)
+  const [ideasAge, setIdeasAge] = useState<string | null>(null)
+  const [ideasFresh, setIdeasFresh] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -43,12 +46,41 @@ export default function SuggestionsPage() {
       const { user, profile } = await meRes.json()
       if (!user) { window.location.href = '/'; return }
       setPlan(profile?.plan || 'starter')
+      setUserId(user.id)
       const [suggestionsRes, postsRes] = await Promise.all([
         supabase.from('post_suggestions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
         supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }).limit(10),
       ])
-      setSuggestions(suggestionsRes.data || [])
+      const data = suggestionsRes.data || []
+      setSuggestions(data)
       setTopPosts(postsRes.data || [])
+
+      // Compute age of most recent idea
+      if (data.length > 0) {
+        const newest = new Date(data[0].created_at)
+        const hoursDiff = (Date.now() - newest.getTime()) / (1000 * 60 * 60)
+        const fresh = hoursDiff < 6
+        setIdeasFresh(fresh)
+        if (hoursDiff < 1) setIdeasAge('just now')
+        else if (hoursDiff < 24) setIdeasAge(`${Math.floor(hoursDiff)} hours ago`)
+        else setIdeasAge(`${Math.floor(hoursDiff / 24)} days ago`)
+
+        // Auto-refresh in background if older than 6 hours — don't clear existing ideas
+        if (!fresh) {
+          fetch('/api/suggestions/refresh', { method: 'POST' })
+            .then(r => r.json())
+            .then(async () => {
+              const { data: fresh } = await supabase.from('post_suggestions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false })
+              if (fresh && fresh.length > 0) {
+                setSuggestions(fresh)
+                setIdeasAge('just now')
+                setIdeasFresh(true)
+              }
+            })
+            .catch(() => {})
+        }
+      }
+
       setLoading(false)
     }
     load()
@@ -59,10 +91,11 @@ export default function SuggestionsPage() {
     const res = await fetch('/api/suggestions/refresh', { method: 'POST' })
     const data = await res.json()
     if (data.error) { toast.error('Error refreshing: ' + data.error); setGenerating(false); return }
-    const meRes = await fetch('/api/me')
-    const { user } = await meRes.json()
-    const { data: newSuggestions } = await supabase.from('post_suggestions').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false })
+    if (!userId) { setGenerating(false); return }
+    const { data: newSuggestions } = await supabase.from('post_suggestions').select('*').eq('user_id', userId).eq('status', 'pending').order('created_at', { ascending: false })
     setSuggestions(newSuggestions || [])
+    setIdeasAge('just now')
+    setIdeasFresh(true)
     setGenerating(false)
     toast.success('Fresh ideas generated!')
   }
@@ -114,7 +147,14 @@ export default function SuggestionsPage() {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-7">
         <div>
           <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Post Ideas</h1>
-          <p className="text-slate-400 text-sm font-medium">Fresh ideas tailored to your industry and voice</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-slate-400 text-sm font-medium">Fresh ideas tailored to your industry and voice</p>
+            {ideasAge && (
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ideasFresh ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                {ideasFresh ? '● ' : '⚠ '}{generating ? 'Refreshing...' : `Generated ${ideasAge}`}
+              </span>
+            )}
+          </div>
         </div>
         <Button variant="outline" onClick={refreshSuggestions} disabled={generating} size="sm" className="gap-1.5 border-slate-200 w-full sm:w-auto">
           <RefreshCw className={`size-3.5 ${generating ? 'animate-spin' : ''}`} />
@@ -142,14 +182,6 @@ export default function SuggestionsPage() {
             {plan === 'starter' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-brand-light text-brand ml-0.5">PRO</Badge>}
           </TabsTrigger>
         </TabsList>
-
-        {generating && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-slate-200 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        )}
 
         {(['trending', 'history', 'stories'] as SuggestionTab[]).map(tabId => (
           <TabsContent key={tabId} value={tabId}>

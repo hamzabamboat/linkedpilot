@@ -15,5 +15,8 @@ export async function GET(request: NextRequest) {
       .maybeSingle(),
   ])
 
-  return NextResponse.json({ user, profile, subscription })
+  return NextResponse.json(
+    { user, profile, subscription },
+    { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' } }
+  )
 }

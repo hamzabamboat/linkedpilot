@@ -63,7 +63,7 @@ const BATCH_STEPS = [
 
 type Tab = 'ai' | 'voice' | 'story'
 
-function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; postsLimit: number; monthName: string }) {
+function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; postsLimit: number | null; monthName: string }) {
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [msgIdx, setMsgIdx] = useState(0)
@@ -90,6 +90,17 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
       if (intervalRef.current) clearInterval(intervalRef.current)
       setLoading(false)
     }
+  }
+
+  if (postsLimit === null) {
+    return (
+      <Card className="mb-6 border-slate-100 shadow-sm">
+        <CardContent className="pt-6">
+          <div className="skeleton h-6 w-48 rounded mb-2" />
+          <div className="skeleton h-4 w-64 rounded" />
+        </CardContent>
+      </Card>
+    )
   }
 
   if (result) {
@@ -171,7 +182,7 @@ function BatchGenerateCard({ plan, postsLimit, monthName }: { plan: string; post
         {loading && (
           <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6">
             <div className="bg-white rounded-xl p-2 shadow-sm mb-6 border border-slate-100">
-              <img src="/logo-icon.png" className="h-12 w-12" alt="PersonaLink" />
+              <img src="/logo-icon.png" className="h-12 w-12" alt="PersonaLink" width={48} height={48} />
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">Generating your posts for {monthName}...</h2>
             <div className="w-64 h-2 bg-slate-200 rounded-full overflow-hidden mb-4">
@@ -299,7 +310,7 @@ function GenerateContent() {
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduling, setScheduling] = useState(false)
   const [plan, setPlan] = useState('starter')
-  const [postsLimit, setPostsLimit] = useState(12)
+  const [postsLimit, setPostsLimit] = useState<number | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState('')
 
   const [recording, setRecording] = useState(false)
@@ -333,7 +344,7 @@ function GenerateContent() {
     fetch('/api/me').then(r => r.json()).then(d => {
       if (d.profile) {
         setPlan(d.profile.plan || 'starter')
-        setPostsLimit(d.profile.posts_limit || 12)
+        setPostsLimit(d.profile.posts_limit ?? 12)
       }
     })
     loadStories()

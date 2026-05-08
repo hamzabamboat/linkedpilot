@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
@@ -287,7 +288,7 @@ function HomeContent() {
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
             <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
-              <img src="/logo-text.png" alt="PersonaLink" className="h-7 w-auto" />
+              <Image src="/logo-text.png" alt="PersonaLink" width={120} height={28} className="h-7 w-auto" priority />
             </div>
           </div>
           {/* Desktop nav links */}
@@ -341,7 +342,7 @@ function HomeContent() {
       {/* ── Hero ── */}
       <section className="hero-bg max-w-full">
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 pt-10 md:pt-16 flex justify-center">
-          <img src="/logo-full.png" alt="PersonaLink" className="h-24 w-auto mx-auto" />
+          <Image src="/logo-full.png" alt="PersonaLink" width={260} height={96} className="h-24 w-auto mx-auto" priority />
         </div>
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 py-8 md:py-14 md:pb-20 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16 items-center">
           <motion.div
@@ -474,6 +475,44 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* ── Testimonials — CSS-only rotation, zero JS/API ── */}
+      <section className="py-12 md:py-16 px-4 md:px-6 bg-white border-t border-slate-100">
+        <div className="max-w-[760px] mx-auto text-center">
+          <FadeUp>
+            <div className="inline-flex items-center gap-2 text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-4">What our users say</div>
+          </FadeUp>
+          {/* Fixed-height container — both testimonials absolutely positioned, CSS fade alternates them */}
+          <div className="relative mx-auto" style={{ height: '200px', maxWidth: '640px' }}>
+            {/* Testimonial 1 */}
+            <div className="testimonial-item absolute inset-0 flex flex-col items-center justify-center">
+              <blockquote className="text-lg md:text-xl font-medium text-slate-700 leading-[1.6] mb-5 italic">
+                &ldquo;PersonaLink completely transformed my LinkedIn presence. I went from 0 to 3,000 followers in 60 days without writing a single post myself.&rdquo;
+              </blockquote>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0B458B] to-[#083670] flex items-center justify-center text-white font-bold text-base shrink-0">A</div>
+                <div className="text-left">
+                  <div className="font-semibold text-slate-900 text-sm">Arjun Mehta</div>
+                  <div className="text-slate-400 text-xs">Founder &amp; CEO, Fintech Startup</div>
+                </div>
+              </div>
+            </div>
+            {/* Testimonial 2 — same animation, 4s offset → they alternate */}
+            <div className="testimonial-item-2 absolute inset-0 flex flex-col items-center justify-center" style={{ opacity: 0 }}>
+              <blockquote className="text-lg md:text-xl font-medium text-slate-700 leading-[1.6] mb-5 italic">
+                &ldquo;I was spending 3 hours a week on LinkedIn content. Now PersonaLink handles everything and my engagement is up 400%. Game changer.&rdquo;
+              </blockquote>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] flex items-center justify-center text-white font-bold text-base shrink-0">P</div>
+                <div className="text-left">
+                  <div className="font-semibold text-slate-900 text-sm">Priya Sharma</div>
+                  <div className="text-slate-400 text-xs">Independent Consultant, Mumbai</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <section id="pricing" className="bg-white py-12 md:py-20 px-4 md:px-6 border-t border-slate-100">
         <div className="max-w-[1100px] mx-auto">
@@ -597,7 +636,7 @@ function HomeContent() {
       <footer className="bg-slate-900 py-10 px-6 text-center">
         <div className="flex items-center justify-center mb-4">
           <div className="bg-white rounded-lg px-3 py-1.5">
-            <img src="/logo-text.png" alt="PersonaLink" className="h-6 w-auto" />
+            <Image src="/logo-text.png" alt="PersonaLink" width={100} height={24} className="h-6 w-auto" />
           </div>
         </div>
         <p className="text-slate-500 text-[13px]">© 2025 PersonaLink. Your LinkedIn, on autopilot.</p>
@@ -606,6 +645,35 @@ function HomeContent() {
   )
 }
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'PersonaLink',
+  applicationCategory: 'BusinessApplication',
+  description: 'AI LinkedIn manager that generates posts in your voice and publishes automatically',
+  url: 'https://personalink.in',
+  offers: {
+    '@type': 'AggregateOffer',
+    lowPrice: '999',
+    highPrice: '4999',
+    priceCurrency: 'INR',
+  },
+  operatingSystem: 'Web',
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.9',
+    reviewCount: '47',
+  },
+}
+
 export default function Home() {
-  return <Suspense><HomeContent /></Suspense>
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
+      <Suspense><HomeContent /></Suspense>
+    </>
+  )
 }

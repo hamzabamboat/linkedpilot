@@ -54,6 +54,7 @@ const PLAN_COLORS: Record<string, string> = {
   pro: 'text-purple-700 font-bold',
   standard: 'text-blue-700 font-semibold',
   starter: 'text-slate-600',
+  free: 'text-slate-400 italic',
 }
 
 function fmt(iso: string) {
@@ -80,11 +81,16 @@ export default function AdminDashboard() {
   const [syncMsg, setSyncMsg] = useState('')
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
+  function loadData() {
+    setLoading(true)
     fetch('/api/admin/data')
       .then(r => r.json())
       .then(d => { setUsers(d.users || []); setRevenue(d.revenue || null) })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
 
     fetch('/api/admin/metrics')
       .then(r => r.json())
@@ -231,6 +237,13 @@ export default function AdminDashboard() {
               placeholder="Search name, email, plan…"
               className="border border-slate-200 rounded-lg px-3 py-2 sm:py-1.5 text-sm text-slate-700 w-full sm:w-52 focus:outline-none focus:ring-2 focus:ring-brand/30"
             />
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="px-3 py-2 sm:py-1.5 bg-[#0B458B] text-white text-xs font-semibold rounded-lg hover:bg-[#0a3a75] disabled:opacity-50 transition-colors"
+            >
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </button>
             <button
               onClick={downloadCSV}
               className="px-3 py-2 sm:py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-700 transition-colors"

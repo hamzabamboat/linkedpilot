@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { User, UserProfile } from '@/lib/supabase'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
@@ -171,7 +172,7 @@ function SidebarContent({ user, profile, plan, planColor, pathname }: {
       <div className="px-5 pt-5 pb-4 border-b border-slate-100">
         <Link href="/dashboard" className="flex items-center group">
           <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
-            <img src="/logo-icon.png" alt="PersonaLink" className="h-8 w-8" />
+            <Image src="/logo-icon.png" alt="PersonaLink" width={32} height={32} className="h-8 w-8" />
           </div>
         </Link>
       </div>
@@ -332,7 +333,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="hide-desktop bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 h-[54px] flex items-center justify-between px-4 shadow-sm">
           <Link href="/dashboard" className="flex items-center">
             <div className="bg-white rounded-xl p-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
-              <img src="/logo-icon.png" alt="PersonaLink" className="h-8 w-8" />
+              <Image src="/logo-icon.png" alt="PersonaLink" width={32} height={32} className="h-8 w-8" />
             </div>
           </Link>
           <div className="flex items-center gap-1">
@@ -342,8 +343,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-400"
                 title="Add LinkedIn profile"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={user.linkedin_picture || ''} alt="" className="w-5 h-5 rounded-full" />
+                {user.linkedin_picture
+                  ? <Image src={user.linkedin_picture} alt="" width={20} height={20} className="w-5 h-5 rounded-full" />
+                  : <div className="w-5 h-5 rounded-full bg-brand-light" />
+                }
                 <span className="hidden sm:inline truncate max-w-[80px]">{user.linkedin_name?.split(' ')[0]}</span>
               </button>
             )}
@@ -390,7 +393,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 {isHome ? (
                   <div className={`bg-white rounded-xl p-1 inline-flex items-center justify-center shadow-sm ${active ? 'ring-1 ring-[#0B458B]/30' : 'opacity-60'}`}>
-                    <img src="/logo-icon.png" alt="Home" className="w-6 h-6 rounded-md" />
+                    <Image src="/logo-icon.png" alt="Home" width={24} height={24} className="w-6 h-6 rounded-md" />
                   </div>
                 ) : (
                   <Icon className="w-5 h-5" strokeWidth={active ? 2 : 1.75} />

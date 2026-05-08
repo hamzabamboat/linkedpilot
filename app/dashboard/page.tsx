@@ -163,11 +163,28 @@ function RoadmapPanel({ profile, posts, analysis, onReanalyse, reanalysing, anal
                 </div>
                 <div>
                   <div className="text-sm font-bold text-slate-900">{analysis.score}/100</div>
-                  <div className="text-[11px] text-slate-400">
-                    {new Date(analysis.analysed_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                  </div>
+                  {(() => {
+                    const daysDiff = Math.floor((Date.now() - new Date(analysis.analysed_at).getTime()) / (1000 * 60 * 60 * 24))
+                    const fresh = daysDiff < 7
+                    return (
+                      <div className="flex flex-col gap-1 mt-0.5">
+                        <div className="text-[10px] text-slate-400">
+                          {daysDiff === 0 ? 'Today' : daysDiff === 1 ? 'Yesterday' : `${daysDiff} days ago`}
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full w-fit ${fresh ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                          {fresh ? '● Up to date' : '⚠ Due for refresh'}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
+              {reanalysing && (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-2">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Refreshing analysis...
+                </div>
+              )}
               {analysis.improvements?.slice(0, 3).map((tip, i) => (
                 <div key={i} className="flex gap-2 items-start text-[12px] text-slate-500 mb-1.5">
                   <span className="text-[#0B458B] mt-0.5 shrink-0">→</span>
@@ -180,7 +197,7 @@ function RoadmapPanel({ profile, posts, analysis, onReanalyse, reanalysing, anal
                 className="mt-3 flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-brand transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3 h-3 ${reanalysing ? 'animate-spin' : ''}`} />
-                {reanalysing ? 'Analysing...' : 'Re-analyse now'}
+                {reanalysing ? 'Analysing...' : 'Analyse again'}
               </button>
             </>
           ) : (
