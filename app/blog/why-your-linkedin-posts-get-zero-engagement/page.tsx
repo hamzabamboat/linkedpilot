@@ -20,7 +20,7 @@ export default function Article3() {
         <div className="max-w-[1100px] mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100">
-              <Image src="/logo-text.png" alt="PersonaLink" width={120} height={28} className="h-7 w-auto" />
+              <Image src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
             </div>
           </Link>
           <Link href="/blog" className="text-slate-500 text-sm font-medium hover:text-slate-900">← Blog</Link>

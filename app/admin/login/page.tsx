@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
         <div className="mb-6 text-center">
           <div className="flex justify-center mb-3">
             <div className="bg-white rounded-xl px-4 py-2">
-              <img src="/logo-text.png" alt="PersonaLink" className="h-8 w-auto" />
+              <img src="/logo-text.png" alt="PersonaLink" width={206} height={32} className="h-8 w-auto" />
             </div>
           </div>
           <h1 className="text-white font-bold text-xl">Admin Access</h1>

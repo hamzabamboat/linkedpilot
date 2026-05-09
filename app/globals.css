@@ -34,6 +34,34 @@
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.518 0.162 254.5);
   }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.6 0.162 254.5);
+    --primary-foreground: oklch(0.145 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0.03 254.5);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(0.269 0 0);
+    --input: oklch(0.269 0 0);
+    --ring: oklch(0.6 0.162 254.5);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.6 0.162 254.5);
+    --sidebar-primary-foreground: oklch(0.145 0 0);
+    --sidebar-accent: oklch(0.269 0.03 254.5);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.269 0 0);
+    --sidebar-ring: oklch(0.6 0.162 254.5);
+  }
   * {
     border-color: var(--border);
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
@@ -182,4 +210,53 @@ input[type="range"]::-webkit-slider-thumb:hover {
   input, textarea, select {
     font-size: 16px !important;
   }
+}
+
+/* ── Dark mode global overrides ────────────────────────────────────────────
+   Outside any @layer so they win the cascade over Tailwind utilities.
+   These cover hardcoded Tailwind color classes that lack dark: variants.
+   ────────────────────────────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+}
+
+/* Text: dark grays → near-white */
+.dark .text-gray-900 { color: #f1f5f9; }
+.dark .text-slate-900 { color: #f1f5f9; }
+.dark .text-gray-800 { color: #e2e8f0; }
+.dark .text-slate-800 { color: #e2e8f0; }
+.dark .text-gray-700 { color: #cbd5e1; }
+.dark .text-slate-700 { color: #cbd5e1; }
+.dark .text-gray-600 { color: #94a3b8; }
+.dark .text-slate-600 { color: #94a3b8; }
+.dark .text-gray-500 { color: #64748b; }
+.dark .text-slate-500 { color: #64748b; }
+
+/* Backgrounds: white/light → dark slate */
+.dark .bg-white { background-color: #1e293b; }
+.dark .bg-slate-50 { background-color: #1e293b; }
+.dark .bg-slate-50\/50 { background-color: rgb(30 41 59 / 0.5); }
+.dark .bg-slate-100 { background-color: #334155; }
+.dark .bg-gray-50 { background-color: #1e293b; }
+.dark .bg-gray-100 { background-color: #334155; }
+
+/* Borders: light → muted dark */
+.dark .border-slate-50 { border-color: #334155; }
+.dark .border-slate-100 { border-color: #334155; }
+.dark .border-slate-200 { border-color: #475569; }
+.dark .border-gray-100 { border-color: #334155; }
+.dark .border-gray-200 { border-color: #475569; }
+
+/* Hover states: light hover → dark hover */
+.dark .hover\:bg-white:hover { background-color: #334155; }
+.dark .hover\:bg-slate-50:hover { background-color: #334155; }
+.dark .hover\:bg-slate-50\/50:hover { background-color: rgb(51 65 85 / 0.5); }
+
+/* Rings and shadows */
+.dark .ring-slate-100 { --tw-ring-color: #334155; }
+.dark .ring-slate-200 { --tw-ring-color: #475569; }
+
+/* Skeleton shimmer */
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
 }
