@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
+import { getCurrency } from '@/lib/currency'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,10 +22,10 @@ const MCQ_QUESTIONS = [
   { id: 'known_as', q: 'How do you want to be known?', options: ['The Expert', 'The Leader', 'The Storyteller', 'The Innovator', 'The Connector'] },
 ]
 
-const PLANS = [
-  { id: 'starter', label: 'Starter', price: 999, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
-  { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+const PLAN_META = [
+  { id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
+  { id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
+  { id: 'pro', label: 'Pro', posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
 ]
 
 type FormData = {
@@ -40,6 +41,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [userCountry, setUserCountry] = useState('IN')
   const [form, setForm] = useState<FormData>({
     name: '', role: '', industry: '', company: '', years_experience: '', linkedin_url: '',
     mcq_answers: {}, writing_sample: '', content_pillars: [], control_preference: '', plan: 'standard',
@@ -49,6 +51,11 @@ export default function OnboardingPage() {
   const [codeError, setCodeError] = useState('')
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
+
+  useEffect(() => {
+    const match = document.cookie.match(/user_country=([^;]+)/)
+    if (match) setUserCountry(match[1])
+  }, [])
 
   // Restore progress from sessionStorage on mount
   useEffect(() => {
@@ -132,6 +139,11 @@ export default function OnboardingPage() {
 
   const progress = ((step - 1) / (TOTAL_STEPS - 1)) * 100
   const wordCount = form.writing_sample.split(/\s+/).filter(Boolean).length
+  const currencyInfo = getCurrency(userCountry)
+  const PLANS = PLAN_META.map(p => ({
+    ...p,
+    price: currencyInfo[p.id as keyof typeof currencyInfo] as number,
+  }))
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -408,7 +420,7 @@ export default function OnboardingPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-[13px] font-bold text-emerald-600 mb-0.5">Free for 7 days</div>
-                        <div className="text-sm text-slate-400">then ₹{p.price.toLocaleString('en-IN')}/mo</div>
+                        <div className="text-sm text-slate-400">then {currencyInfo.symbol}{p.price.toLocaleString()}/mo</div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">

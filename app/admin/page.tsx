@@ -11,6 +11,8 @@ type UserRow = {
   subscription_status: string
   sub_status: string
   subscription_count: number
+  payment_processor: string
+  currency: string
   joined: string
   last_active: string
   posts_total: number
@@ -34,6 +36,7 @@ type Metrics = {
 type Revenue = {
   total_active: number
   mrr: number
+  mrr_by_currency: Record<string, number>
   plan_breakdown: Record<string, number>
   new_subs_this_month: number
   churned_this_month: number
@@ -204,20 +207,26 @@ export default function AdminDashboard() {
       {revenue && (
         <div>
           <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Revenue Overview</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             {[
               { label: 'Active Subscribers', value: revenue.total_active },
-              { label: 'MRR', value: `₹${revenue.mrr.toLocaleString('en-IN')}` },
+              { label: 'MRR (₹ equiv.)', value: `₹${revenue.mrr.toLocaleString('en-IN')}` },
               { label: 'New This Month', value: revenue.new_subs_this_month },
               { label: 'Churned This Month', value: revenue.churned_this_month },
               {
                 label: 'By Plan',
                 value: `S:${revenue.plan_breakdown.starter ?? 0} / Std:${revenue.plan_breakdown.standard ?? 0} / P:${revenue.plan_breakdown.pro ?? 0}`,
               },
+              {
+                label: 'By Currency',
+                value: Object.entries(revenue.mrr_by_currency ?? {})
+                  .map(([c, v]) => `${c}:${v}`)
+                  .join(' · ') || '—',
+              },
             ].map(stat => (
               <div key={stat.label} className="bg-white rounded-xl border border-slate-200 px-5 py-4">
                 <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</div>
-                <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
+                <div className="text-xl font-bold text-slate-900 break-all">{stat.value}</div>
               </div>
             ))}
           </div>
@@ -258,7 +267,7 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50">
-                  {['Name', 'Email', 'Plan', 'Status', 'Joined', 'Posts Total', 'Posts/Mo', 'Resubs', 'Last Active'].map(h => (
+                  {['Name', 'Email', 'Plan', 'Status', 'Processor', 'Joined', 'Posts Total', 'Posts/Mo', 'Resubs', 'Last Active'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                       {h}
                     </th>
@@ -276,6 +285,11 @@ export default function AdminDashboard() {
                         {u.subscription_status.replace('_', ' ')}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap text-[13px]">
+                      {u.payment_processor === 'dodo'
+                        ? <span title="Dodo Payments">🌍 Dodo <span className="text-slate-400 text-[11px]">{u.currency}</span></span>
+                        : <span title="Razorpay">🇮🇳 Razorpay</span>}
+                    </td>
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{fmt(u.joined)}</td>
                     <td className="px-4 py-3 text-slate-700 font-medium text-center">{u.posts_total}</td>
                     <td className="px-4 py-3 text-slate-700 text-center">{u.posts_this_month}</td>
@@ -285,7 +299,7 @@ export default function AdminDashboard() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400 text-sm">
+                    <td colSpan={10} className="px-4 py-12 text-center text-slate-400 text-sm">
                       {search ? 'No users match your search.' : 'No users yet.'}
                     </td>
                   </tr>

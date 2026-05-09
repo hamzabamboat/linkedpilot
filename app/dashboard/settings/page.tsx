@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
+import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import Script from 'next/script'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,12 @@ function SettingsContent() {
   const [profile, setProfile] = useState<Record<string, unknown>>({})
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
   const [subscription, setSubscription] = useState<{ status: string; trial_ends_at: string | null; next_billing_date: string | null } | null>(null)
+  const [userCountry, setUserCountry] = useState('IN')
+
+  useEffect(() => {
+    const match = document.cookie.match(/user_country=([^;]+)/)
+    if (match) setUserCountry(match[1])
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -80,6 +87,28 @@ function SettingsContent() {
 
   async function handleUpgrade(planId: string, planLabel: string, planColor: string) {
     setUpgradingPlan(planId)
+
+    const processor = getPaymentProcessor(userCountry)
+
+    if (processor === 'dodo') {
+      const currencyInfo = getCurrency(userCountry)
+      try {
+        const res = await fetch('/api/dodo/create-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planId, currency: currencyInfo.code }),
+        })
+        const data = await res.json()
+        if (data.error) { toast.error('Error: ' + data.error); setUpgradingPlan(null); return }
+        window.location.href = data.checkout_url
+      } catch {
+        toast.error('Something went wrong. Please try again.')
+        setUpgradingPlan(null)
+      }
+      return
+    }
+
+    // Razorpay flow for Indian users
     try {
       const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
@@ -135,11 +164,13 @@ function SettingsContent() {
 
   const plan = (profile.plan as string) || 'starter'
   const planColor = plan === 'pro' ? '#7c3aed' : plan === 'standard' ? '#0A66C2' : '#64748b'
+  const currencyInfo = getCurrency(userCountry)
+  const processor = getPaymentProcessor(userCountry)
 
   const PLANS = [
-    { id: 'starter', label: 'Starter', price: 999, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-    { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2' },
-    { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+    { id: 'starter', label: 'Starter', price: currencyInfo.starter, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
+    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2' },
+    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
   ]
 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -378,7 +409,7 @@ function SettingsContent() {
                         )}
                       </div>
                       <div className="text-[22px] font-extrabold text-slate-900 tracking-tight">
-                        ₹{plan === 'pro' ? '5,000' : plan === 'standard' ? '2,500' : '999'}
+                        {currencyInfo.symbol}{currencyInfo[plan as keyof typeof currencyInfo] ?? currencyInfo.starter}
                         <span className="text-sm font-normal text-slate-400">/mo</span>
                       </div>
                     </div>
@@ -428,7 +459,7 @@ function SettingsContent() {
                             <div className="text-[13px] text-slate-400">{p.posts} posts/month</div>
                           </div>
                           <div className="text-2xl font-extrabold tracking-tight" style={{ color: p.color }}>
-                            ₹{p.price.toLocaleString('en-IN')}<span className="text-xs font-normal text-slate-400">/mo</span>
+                            {currencyInfo.symbol}{p.price.toLocaleString()}<span className="text-xs font-normal text-slate-400">/mo</span>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -444,7 +475,7 @@ function SettingsContent() {
                         >
                           {upgradingPlan === p.id
                             ? <><Loader2 className="size-4 animate-spin" /> Opening checkout...</>
-                            : <>Upgrade to {p.label} <ArrowRight className="size-4" /></>
+                            : <>Upgrade to {p.label} · via {processor === 'razorpay' ? 'Razorpay' : 'Dodo'} <ArrowRight className="size-4" /></>
                           }
                         </Button>
                       </CardContent>

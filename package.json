@@ -16,6 +16,7 @@
     "@vercel/analytics": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dodopayments": "^2.31.1",
     "framer-motion": "^12.38.0",
     "google-trends-api": "^4.9.2",
     "googleapis": "^171.4.0",

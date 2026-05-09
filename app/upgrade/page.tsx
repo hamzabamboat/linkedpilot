@@ -4,22 +4,23 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { PLAN_FEATURES } from '@/lib/supabase'
+import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Check } from 'lucide-react'
-
-const PLANS = [
-  { id: 'starter', label: 'Starter', price: 999, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: PLAN_FEATURES.standard, color: '#0B458B', popular: true },
-  { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
-]
 
 export default function UpgradePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<{ name?: string; email?: string } | null>(null)
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
+  const [userCountry, setUserCountry] = useState('IN')
+
+  useEffect(() => {
+    const match = document.cookie.match(/user_country=([^;]+)/)
+    if (match) setUserCountry(match[1])
+  }, [])
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(data => {
@@ -29,8 +30,36 @@ export default function UpgradePage() {
     })
   }, [router])
 
+  const currencyInfo = getCurrency(userCountry)
+  const processor = getPaymentProcessor(userCountry)
+
+  const PLANS = [
+    { id: 'starter', label: 'Starter', price: currencyInfo.starter, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
+    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#0B458B', popular: true },
+    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+  ]
+
   async function handleSubscribe(plan: { id: string; label: string; color: string }) {
     setUpgradingPlan(plan.id)
+
+    if (processor === 'dodo') {
+      try {
+        const res = await fetch('/api/dodo/create-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: plan.id, currency: currencyInfo.code }),
+        })
+        const data = await res.json()
+        if (data.error) { toast.error(data.error); setUpgradingPlan(null); return }
+        window.location.href = data.checkout_url
+      } catch {
+        toast.error('Something went wrong. Please try again.')
+        setUpgradingPlan(null)
+      }
+      return
+    }
+
+    // Razorpay for Indian users
     try {
       const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
@@ -83,7 +112,7 @@ export default function UpgradePage() {
 
   return (
     <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      {processor === 'razorpay' && <Script src="https://checkout.razorpay.com/v1/checkout.js" />}
       <div className="min-h-screen bg-slate-50">
         <div className="bg-white border-b border-slate-200 px-6">
           <div className="max-w-[860px] mx-auto h-16 flex items-center">
@@ -123,7 +152,7 @@ export default function UpgradePage() {
                       {plan.label}
                     </div>
                     <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                      ₹{plan.price.toLocaleString('en-IN')}
+                      {currencyInfo.symbol}{plan.price.toLocaleString()}
                       <span className="text-sm font-normal text-slate-400">/mo</span>
                     </div>
                     <div className="text-xs text-slate-400 mb-5 mt-0.5">{plan.posts} posts/month</div>
@@ -147,7 +176,7 @@ export default function UpgradePage() {
                     {upgradingPlan === plan.id ? (
                       <><Loader2 className="size-4 animate-spin" /> Processing...</>
                     ) : (
-                      'Start Free Trial'
+                      `Start Free Trial · via ${processor === 'razorpay' ? 'Razorpay' : 'Dodo'}`
                     )}
                   </Button>
                 </CardContent>

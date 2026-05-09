@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { CURRENCY_TO_INR } from '@/lib/currency'
 
 function adminAuth(request: NextRequest) {
   const cookie = request.cookies.get('admin_session')?.value
@@ -7,9 +8,16 @@ function adminAuth(request: NextRequest) {
   return cookie === process.env.ADMIN_SECRET || header === process.env.ADMIN_SECRET
 }
 
-const PLAN_PRICE: Record<string, number> = { starter: 999, standard: 2499, pro: 4999 }
+// INR prices for Razorpay subscribers
+const PLAN_PRICE_INR: Record<string, number> = { starter: 999, standard: 2499, pro: 4999 }
 
-// Reverse-map Razorpay plan IDs to readable plan names
+// Dodo plan prices per currency
+const DODO_PLAN_PRICE: Record<string, Record<string, number>> = {
+  starter:  { USD: 12, GBP: 10, SGD: 16, AED: 45, EUR: 11 },
+  standard: { USD: 30, GBP: 25, SGD: 40, AED: 110, EUR: 28 },
+  pro:      { USD: 60, GBP: 50, SGD: 80, AED: 220, EUR: 55 },
+}
+
 function buildPlanIdMap(): Record<string, string> {
   const map: Record<string, string> = {}
   const ids: Record<string, string | undefined> = {
@@ -26,7 +34,6 @@ function buildPlanIdMap(): Record<string, string> {
 export async function GET(request: NextRequest) {
   if (!adminAuth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Query users, profiles, posts, and subscriptions separately for accuracy
   const [usersRes, profilesRes, postsRes, subscriptionsRes] = await Promise.all([
     supabaseAdmin
       .from('users')
@@ -38,7 +45,7 @@ export async function GET(request: NextRequest) {
     supabaseAdmin.from('posts').select('user_id'),
     supabaseAdmin
       .from('subscriptions')
-      .select('user_id, status, plan_id, razorpay_subscription_id, created_at')
+      .select('user_id, status, plan_id, razorpay_subscription_id, dodo_subscription_id, payment_processor, currency, created_at')
       .in('status', ['active', 'trial', 'trialing', 'access_code', 'created', 'halted', 'cancelled', 'expired', 'completed']),
   ])
 
@@ -47,7 +54,6 @@ export async function GET(request: NextRequest) {
   const posts = postsRes.data || []
   const subscriptions = subscriptionsRes.data || []
 
-  // Build lookup maps
   const profileMap = new Map(profiles.map(p => [p.user_id, p]))
   const subscriptionMap = new Map(subscriptions.map(s => [s.user_id, s]))
   const planIdToName = buildPlanIdMap()
@@ -64,21 +70,16 @@ export async function GET(request: NextRequest) {
     const profile = profileMap.get(u.id)
     const sub = subscriptionMap.get(u.id)
 
-    // Plan resolution: user_profiles.plan is source of truth (set by webhook + onboarding)
-    // Fall back to subscription plan_id reverse-lookup, then 'free' if no subscription
     let plan = profile?.plan ?? null
     if (!plan || plan === 'starter') {
-      if (sub?.plan_id && planIdToName[sub.plan_id]) {
-        plan = planIdToName[sub.plan_id]
-      }
+      if (sub?.plan_id && planIdToName[sub.plan_id]) plan = planIdToName[sub.plan_id]
     }
-    // No subscription and no profile plan = free user
-    if (!sub && !profile?.plan) {
-      plan = 'free'
-    }
+    if (!sub && !profile?.plan) plan = 'free'
     plan = plan ?? 'starter'
 
     const subStatus = sub?.status ?? u.subscription_status ?? 'inactive'
+    const processor = sub?.payment_processor ?? 'razorpay'
+    const currency = sub?.currency ?? 'INR'
 
     return {
       id: u.id,
@@ -90,6 +91,9 @@ export async function GET(request: NextRequest) {
       sub_status: subStatus,
       subscription_count: u.subscription_count ?? 0,
       razorpay_subscription_id: sub?.razorpay_subscription_id ?? null,
+      dodo_subscription_id: sub?.dodo_subscription_id ?? null,
+      payment_processor: processor,
+      currency,
       joined: u.created_at,
       last_active: u.updated_at,
       posts_total: postCountMap[u.id] ?? 0,
@@ -97,11 +101,28 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  // Revenue summary — use actual plan prices for active subscribers
+  // MRR: convert all currencies to INR equivalent using fixed rates
   const activeRows = rows.filter(r => ['active', 'trial', 'trialing', 'access_code'].includes(r.subscription_status))
   const mrr = activeRows
-    .filter(r => r.subscription_status === 'active') // Only count truly active (post-trial)
-    .reduce((sum, r) => sum + (PLAN_PRICE[r.plan] || 0), 0)
+    .filter(r => r.subscription_status === 'active')
+    .reduce((sum, r) => {
+      if (r.payment_processor === 'dodo') {
+        const localPrice = DODO_PLAN_PRICE[r.plan]?.[r.currency] ?? 0
+        const rate = CURRENCY_TO_INR[r.currency] ?? 84
+        return sum + Math.round(localPrice * rate)
+      }
+      return sum + (PLAN_PRICE_INR[r.plan] || 0)
+    }, 0)
+
+  const mrrByCurrency: Record<string, number> = {}
+  for (const r of activeRows.filter(r => r.subscription_status === 'active')) {
+    if (r.payment_processor === 'dodo') {
+      const localPrice = DODO_PLAN_PRICE[r.plan]?.[r.currency] ?? 0
+      mrrByCurrency[r.currency] = (mrrByCurrency[r.currency] ?? 0) + localPrice
+    } else {
+      mrrByCurrency['INR'] = (mrrByCurrency['INR'] ?? 0) + (PLAN_PRICE_INR[r.plan] || 0)
+    }
+  }
 
   const planBreakdown = { starter: 0, standard: 0, pro: 0, free: 0 }
   for (const r of activeRows) {
@@ -124,13 +145,12 @@ export async function GET(request: NextRequest) {
       revenue: {
         total_active: activeRows.length,
         mrr,
+        mrr_by_currency: mrrByCurrency,
         plan_breakdown: planBreakdown,
         new_subs_this_month: newSubsThisMonth.length,
         churned_this_month: churnedThisMonth.length,
       },
     },
-    {
-      headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
-    }
+    { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } }
   )
 }
