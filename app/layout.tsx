@@ -4,6 +4,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,6 +35,12 @@ export const metadata: Metadata = {
   authors: [{ name: 'PersonaLink' }],
   creator: 'PersonaLink',
   publisher: 'PersonaLink',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'PersonaLink',
+  },
   robots: {
     index: true,
     follow: true,
@@ -65,17 +72,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '32x32' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-    other: [
-      { rel: 'android-chrome-192x192', url: '/android-chrome-192x192.png' },
-      { rel: 'android-chrome-512x512', url: '/android-chrome-512x512.png' },
-    ],
+    apple: '/apple-touch-icon.png',
   },
 }
 
@@ -83,6 +83,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  themeColor: '#0B458B',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -93,12 +95,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://aoirhksbkoraaywephya.supabase.co" />
         <link rel="preconnect" href="https://checkout.razorpay.com" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#0B458B" />
+        <meta name="application-name" content="PersonaLink" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="PersonaLink" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-startup-image" href="/apple-touch-icon.png" />
       </head>
       <body className="overflow-x-hidden">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
+          <PWAInstallPrompt />
           <Toaster richColors position="top-center" />
           <Analytics />
         </ThemeProvider>
