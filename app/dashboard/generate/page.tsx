@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { ImageSelector } from '@/components/image-selector'
 import { PostImage } from '@/lib/supabase'
 import { ConcentricRings, QuarterRings } from '@/components/concentric-rings'
@@ -542,7 +543,18 @@ function GenerateContent() {
       recorder.start()
       mediaRef.current = recorder
       setRecording(true)
-    } catch { setError('Microphone permission denied.') }
+    } catch (err) {
+      const isDenied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
+      if (isDenied) {
+        toast.error('Microphone access denied', {
+          description: 'To enable: click the 🔒 lock icon in your browser\'s address bar → Site settings → Allow Microphone, then try again.',
+          action: { label: 'Try Again', onClick: startRecording },
+          duration: 12000,
+        })
+      } else {
+        setError('Could not access microphone. Please check your device.')
+      }
+    }
   }
 
   function stopRecording() { mediaRef.current?.stop(); setRecording(false) }

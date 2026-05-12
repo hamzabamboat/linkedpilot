@@ -118,8 +118,17 @@ export default function StoryBankPage() {
       mr.start()
       mediaRecorderRef.current = mr
       setRecording(true)
-    } catch {
-      toast.error('Could not access microphone. Please check permissions.')
+    } catch (err) {
+      const isDenied = err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')
+      if (isDenied) {
+        toast.error('Microphone access denied', {
+          description: 'To enable: click the 🔒 lock icon in your browser\'s address bar → Site settings → Allow Microphone, then try again.',
+          action: { label: 'Try Again', onClick: startRecording },
+          duration: 12000,
+        })
+      } else {
+        toast.error('Could not access microphone. Please check your device.')
+      }
     }
   }
 
