@@ -30,6 +30,9 @@ import {
   BookOpen,
   MoreHorizontal,
   ImageIcon,
+  Mail,
+  Copy,
+  Check as CheckIcon,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -359,6 +362,87 @@ function TrialBanner({ trialEndsAt, onDismiss }: { trialEndsAt: string; onDismis
   )
 }
 
+const SENDER_EMAIL = 'noreply@personalink.in'
+const CONTACT_DISMISSED_KEY = 'pl_add_contact_dismissed'
+
+function AddContactToast() {
+  const [visible, setVisible] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!localStorage.getItem(CONTACT_DISMISSED_KEY)) {
+      const t = setTimeout(() => setVisible(true), 1500)
+      return () => clearTimeout(t)
+    }
+  }, [])
+
+  function dismiss() {
+    setVisible(false)
+    localStorage.setItem(CONTACT_DISMISSED_KEY, '1')
+  }
+
+  async function copy() {
+    await navigator.clipboard.writeText(SENDER_EMAIL)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.96 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed bottom-20 md:bottom-6 right-4 z-50 w-[320px] bg-white dark:bg-slate-900 rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.14)] border border-slate-200 dark:border-slate-700 overflow-hidden"
+        >
+          <div className="flex items-start gap-3 p-4">
+            <div className="w-9 h-9 rounded-xl bg-brand-light flex items-center justify-center shrink-0 mt-0.5">
+              <Mail className="w-4 h-4 text-brand" strokeWidth={1.75} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13.5px] font-semibold text-slate-900 dark:text-slate-100 mb-1 leading-snug">
+                Keep emails out of spam
+              </p>
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
+                Add our sender to your contacts so approval emails and weekly digests always reach your inbox.
+              </p>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2">
+                <span className="text-[12px] font-mono text-slate-700 dark:text-slate-300 flex-1 truncate">{SENDER_EMAIL}</span>
+                <button
+                  onClick={copy}
+                  className="text-brand hover:text-brand-dark transition-colors shrink-0"
+                  title="Copy email"
+                >
+                  {copied
+                    ? <CheckIcon className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2.5} />
+                    : <Copy className="w-3.5 h-3.5" strokeWidth={2} />
+                  }
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={dismiss}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors shrink-0 -mt-0.5 -mr-0.5"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="border-t border-slate-100 dark:border-slate-800 flex">
+            <button
+              onClick={dismiss}
+              className="flex-1 py-2.5 text-[12px] font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -507,6 +591,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </div>
       </nav>
+
+      <AddContactToast />
 
       {/* More sheet */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
