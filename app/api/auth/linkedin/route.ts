@@ -11,7 +11,7 @@ import { cookies } from 'next/headers'
 export async function GET() {
   const clientId = process.env.LINKEDIN_CLIENT_ID!
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/linkedin/callback`
-  const scope = 'openid profile email w_member_social'
+  const scope = 'openid profile email w_member_social r_member_social'
   const state = crypto.randomUUID()
 
   const cookieStore = await cookies()
