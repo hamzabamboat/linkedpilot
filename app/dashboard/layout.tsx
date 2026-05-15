@@ -452,6 +452,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen, setMobileOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [trialDismissed, setTrialDismissed] = useState(false)
+  const [agencyMode, setAgencyMode] = useState<{ agencyName: string; clientName: string | null } | null>(null)
 
   useEffect(() => {
     fetch('/api/me').then(r => {
@@ -461,6 +462,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (d?.user) setUser(d.user)
       if (d?.profile) setProfile(d.profile)
       if (d?.subscription) setSubscription(d.subscription)
+      if (d?.agencyMode) setAgencyMode(d.agencyMode)
     }).catch(() => router.push('/'))
   }, [])
 
@@ -508,8 +510,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
+        {/* Agency mode banner */}
+        {agencyMode && (
+          <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between gap-3 text-xs font-medium">
+            <span>
+              Managing{agencyMode.clientName ? `: ${agencyMode.clientName}` : ''} — on behalf of <span className="font-bold">{agencyMode.agencyName}</span>
+            </span>
+            <button
+              onClick={async () => {
+                await fetch('/api/agency/switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+                router.push('/agency/dashboard')
+              }}
+              className="shrink-0 bg-white/20 hover:bg-white/30 transition-colors px-3 py-1 rounded-full font-semibold"
+            >
+              ← Back to agency
+            </button>
+          </div>
+        )}
+
         {/* Trial banner */}
-        {!trialDismissed && subscription?.status === 'trial' && subscription.trial_ends_at && new Date(subscription.trial_ends_at) > new Date() && (
+        {!agencyMode && !trialDismissed && subscription?.status === 'trial' && subscription.trial_ends_at && new Date(subscription.trial_ends_at) > new Date() && (
           <TrialBanner trialEndsAt={subscription.trial_ends_at} onDismiss={() => setTrialDismissed(true)} />
         )}
 

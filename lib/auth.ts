@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextRequest } from 'next/server'
-import { User } from './supabase'
+import { User, Agency } from './supabase'
 import { supabaseAdmin } from './supabase-admin'
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -37,4 +37,31 @@ export function hasActiveSubscription(user: User): boolean {
 export function canGeneratePost(user: User): boolean {
   if (hasActiveSubscription(user)) return true
   return user.trial_posts_used < 3
+}
+
+export async function getAgency(): Promise<Agency | null> {
+  const cookieStore = await cookies()
+  const agencyId = cookieStore.get('session_agency_id')?.value
+  if (!agencyId) return null
+
+  const { data } = await supabaseAdmin
+    .from('agencies')
+    .select('*')
+    .eq('id', agencyId)
+    .single()
+
+  return data
+}
+
+export async function getAgencyFromRequest(request: NextRequest): Promise<Agency | null> {
+  const agencyId = request.cookies.get('session_agency_id')?.value
+  if (!agencyId) return null
+
+  const { data } = await supabaseAdmin
+    .from('agencies')
+    .select('*')
+    .eq('id', agencyId)
+    .single()
+
+  return data
 }

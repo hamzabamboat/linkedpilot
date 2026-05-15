@@ -62,6 +62,33 @@ export async function GET(request: NextRequest) {
 
     const profile = await profileResponse.json()
 
+    // Agency client LinkedIn setup: link credentials to existing client user record
+    const agencyClientUserId = request.cookies.get('agency_oauth_client_user_id')?.value
+    if (agencyClientUserId) {
+      await supabaseAdmin
+        .from('users')
+        .update({
+          linkedin_id: profile.sub,
+          linkedin_name: profile.name,
+          email: profile.email ?? undefined,
+          linkedin_picture: profile.picture ?? undefined,
+          linkedin_access_token: accessToken,
+          linkedin_token_expires_at: expiresAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', agencyClientUserId)
+
+      await supabaseAdmin
+        .from('user_profiles')
+        .update({ name: profile.name })
+        .eq('user_id', agencyClientUserId)
+
+      const response = NextResponse.redirect(`${APP_URL}/agency/dashboard?linked=1`)
+      response.cookies.delete('agency_oauth_client_user_id')
+      response.cookies.delete('linkedin_oauth_state')
+      return response
+    }
+
     const isNew = !(await supabaseAdmin
       .from('users')
       .select('id')

@@ -13,11 +13,13 @@ const PUBLIC_API_PATHS = [
   '/api/auth/google',
   '/api/auth/callback',
   '/api/auth/logout',
+  '/api/agency/login',
 ]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userId = request.cookies.get('session_user_id')?.value
+  const agencyId = request.cookies.get('session_agency_id')?.value
 
   // Always allow public auth API paths
   if (PUBLIC_API_PATHS.some(p => pathname.startsWith(p))) {
@@ -41,6 +43,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Agency area protection — require session_agency_id
+  if (pathname.startsWith('/agency') && pathname !== '/agency/login') {
+    if (!agencyId) {
+      return NextResponse.redirect(new URL('/agency/login', request.url))
+    }
+    // Verify agency is still active
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: agency } = await supabase
+      .from('agencies')
+      .select('is_active')
+      .eq('id', agencyId)
+      .maybeSingle()
+    if (!agency || !agency.is_active) {
+      const response = NextResponse.redirect(new URL('/agency/login', request.url))
+      response.cookies.delete('session_agency_id')
+      response.cookies.delete('session_user_id')
+      response.cookies.delete('agency_mode')
+      return response
+    }
+    return NextResponse.next()
+  }
+
   const country = request.headers.get('x-vercel-ip-country') ?? 'IN'
 
   // Only protect dashboard and onboarding
@@ -53,6 +80,13 @@ export async function middleware(request: NextRequest) {
       res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
     }
     return res
+  }
+
+  // Agency managing a client — agency_mode cookie + session_user_id (the client) is set
+  // sub_status is pre-set to 'active' when switching to a client, so let it through
+  const agencyMode = request.cookies.get('agency_mode')?.value
+  if (agencyMode && userId) {
+    return NextResponse.next()
   }
 
   // Must be logged in for both
@@ -84,7 +118,6 @@ export async function middleware(request: NextRequest) {
       .eq('code', usedCode)
       .maybeSingle()
     if (!codeRow || !codeRow.is_active) {
-      // Code deactivated — clear session and redirect to home
       const response = NextResponse.redirect(new URL('/?deactivated=1', request.url))
       response.cookies.delete('session_user_id')
       response.cookies.delete('sub_status')
@@ -105,7 +138,6 @@ export async function middleware(request: NextRequest) {
     .single()
 
   if (user?.subscription_status === 'access_code') {
-    // Verify the code is still active if we know which one they used
     if (usedCode) {
       const { data: codeRow } = await supabase
         .from('access_codes')
@@ -160,5 +192,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding', '/upgrade', '/admin/:path*'],
+  matcher: ['/dashboard/:path*', '/onboarding', '/upgrade', '/admin/:path*', '/agency/:path*'],
 }
