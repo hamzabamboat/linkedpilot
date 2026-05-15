@@ -4,11 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { Post } from '@/lib/supabase'
 import type { PostImage } from '@/lib/supabase'
-import { QuarterRings } from '@/components/concentric-rings'
-import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { PostCard } from '@/components/post-card'
-import { EmptyState } from '@/components/empty-state'
 import { ImageSelector } from '@/components/image-selector'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -21,18 +17,21 @@ function utcToLocalInput(utcString: string): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-const STATUS_COLOR: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-  draft: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: 'Draft' },
-  pending_approval: { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-400', label: 'Pending' },
-  approved: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-400', label: 'Approved' },
-  scheduled: { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-400', label: 'Scheduled' },
-  publishing: { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-400', label: 'Publishing' },
-  published: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-400', label: 'Published' },
-  failed: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-400', label: 'Failed' },
+const STATUS_COLOR: Record<string, string> = {
+  draft: 'var(--ink-4)',
+  pending_approval: '#f59e0b',
+  approved: '#10b981',
+  scheduled: 'var(--pl-accent)',
+  publishing: '#8b5cf6',
+  published: '#059669',
+  failed: '#ef4444',
+}
+const STATUS_LABEL: Record<string, string> = {
+  draft: 'Draft', pending_approval: 'Pending', approved: 'Approved',
+  scheduled: 'Scheduled', publishing: 'Publishing', published: 'Published', failed: 'Failed',
 }
 
 const LEGEND = ['scheduled', 'published', 'pending_approval', 'failed']
-
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -41,7 +40,6 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 function getFirstDayOfWeek(year: number, month: number) {
-  // Returns 0 (Mon) to 6 (Sun) — ISO week start Monday
   const d = new Date(year, month, 1).getDay()
   return d === 0 ? 6 : d - 1
 }
@@ -70,15 +68,11 @@ export default function CalendarPage() {
         if (!meRes.ok) return
         const { user } = await meRes.json()
         if (!user || cancelled) return
-
         const monthParam = `${year}-${String(month + 1).padStart(2, '0')}`
         const res = await fetch(`/api/posts?scheduled_month=${monthParam}&order=scheduled_at`)
         const data = await res.json()
-
         if (!cancelled) setPosts(data.posts || [])
-      } catch {
-        /* non-fatal — calendar just shows empty */
-      } finally {
+      } catch { /* non-fatal */ } finally {
         if (!cancelled) setLoading(false)
       }
     }
@@ -87,30 +81,15 @@ export default function CalendarPage() {
   }, [year, month])
 
   function prevMonth() {
-    if (month === 0) { setYear(y => y - 1); setMonth(11) }
-    else setMonth(m => m - 1)
+    if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1)
     closePanel()
   }
-
   function nextMonth() {
-    if (month === 11) { setYear(y => y + 1); setMonth(0) }
-    else setMonth(m => m + 1)
+    if (month === 11) { setYear(y => y + 1); setMonth(0) } else setMonth(m => m + 1)
     closePanel()
   }
-
-  function jumpToToday() {
-    setYear(now.getFullYear())
-    setMonth(now.getMonth())
-    closePanel()
-  }
-
-  function closePanel() {
-    setPanelOpen(false)
-    setSelectedDay(null)
-    setEditingPost(null)
-    setEditTime('')
-    setEditImages([])
-  }
+  function jumpToToday() { setYear(now.getFullYear()); setMonth(now.getMonth()); closePanel() }
+  function closePanel() { setPanelOpen(false); setSelectedDay(null); setEditingPost(null); setEditTime(''); setEditImages([]) }
 
   function startEditPost(post: Post) {
     setEditingPost(post)
@@ -125,31 +104,18 @@ export default function CalendarPage() {
     if (editTime) body.scheduled_at = new Date(editTime).toISOString()
     if (editImages.length > 0) body.image_urls = editImages.map(i => i.public_url)
     const res = await fetch(`/api/posts/${editingPost.id}/update`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     const data = await res.json()
-    if (data.post) {
-      setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, ...data.post } : p))
-      toast.success('Post updated')
-    } else {
-      toast.error(data.error || 'Failed to update post')
-    }
-    setSaving(false)
-    setEditingPost(null)
-    setEditTime('')
-    setEditImages([])
+    if (data.post) { setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, ...data.post } : p)); toast.success('Post updated') }
+    else toast.error(data.error || 'Failed to update post')
+    setSaving(false); setEditingPost(null); setEditTime(''); setEditImages([])
   }
 
   function handleDayClick(day: number) {
     const dayPosts = getPostsForDay(day)
-    if (dayPosts.length > 0) {
-      setSelectedDay(day)
-      setPanelOpen(true)
-    } else if (!isDayPast(day)) {
-      setAddPostDay(day)
-    }
+    if (dayPosts.length > 0) { setSelectedDay(day); setPanelOpen(true) }
+    else if (!isDayPast(day)) setAddPostDay(day)
   }
 
   const daysInMonth = getDaysInMonth(year, month)
@@ -161,7 +127,6 @@ export default function CalendarPage() {
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     return new Date(year, month, day) < todayMidnight
   }
-
   function getPostsForDay(day: number): Post[] {
     return posts.filter(p => {
       if (!p.scheduled_at) return false
@@ -171,14 +136,10 @@ export default function CalendarPage() {
   }
 
   const selectedDayPosts = selectedDay ? getPostsForDay(selectedDay) : []
-
   const cells: (number | null)[] = []
   for (let i = 0; i < firstDayOffset; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-
-  const addPostDateStr = addPostDay
-    ? `${MONTH_NAMES[month]} ${addPostDay}, ${year}`
-    : ''
+  const addPostDateStr = addPostDay ? `${MONTH_NAMES[month]} ${addPostDay}, ${year}` : ''
 
   return (
     <div className="p-4 md:p-7 max-w-[960px]">
@@ -189,51 +150,74 @@ export default function CalendarPage() {
         maxSelect={4}
         alreadySelected={editImages.map(i => i.id)}
       />
+
       {/* Header */}
-      <div className="flex items-start justify-between mb-5 md:mb-6 relative overflow-hidden">
-        <QuarterRings size={200} color="blue" className="absolute top-0 right-0 pointer-events-none hidden lg:block" />
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Content Calendar</h1>
-          <p className="text-sm text-gray-500">All your scheduled posts at a glance.</p>
+          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
+            Calendar
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+            // {posts.length} post{posts.length !== 1 ? 's' : ''} this month
+          </p>
         </div>
-        <Link href="/dashboard/generate">
-          <Button size="sm" className="gap-1.5">
-            <Plus className="w-3.5 h-3.5" />
-            Add post
-          </Button>
+        <Link
+          href="/dashboard/generate"
+          className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+          style={{
+            background: 'var(--pl-accent)', color: '#fff',
+            borderRadius: 'var(--r-sm)', padding: '7px 14px',
+            fontSize: 13, fontWeight: 600,
+          }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add post
         </Link>
       </div>
 
       {/* Calendar card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
         {/* Month nav */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--line)' }}>
+          <button
+            onClick={prevMonth}
+            className="flex items-center justify-center transition-all hover:opacity-70"
+            style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', border: '1px solid var(--line)', background: 'var(--surface-2)', color: 'var(--ink-2)' }}
+          >
+            <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="text-center">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{MONTH_NAMES[month]} {year}</h2>
-              <div className="text-[12px] text-slate-400">{posts.length} post{posts.length !== 1 ? 's' : ''} this month</div>
-            </div>
-            {(!isCurrentMonth) && (
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+              {MONTH_NAMES[month]} {year}
+            </h2>
+            {!isCurrentMonth && (
               <button
                 onClick={jumpToToday}
-                className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-brand-light text-brand hover:bg-brand/10 transition-colors"
+                className="transition-all hover:opacity-80"
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '3px 10px',
+                  borderRadius: 'var(--r-full)',
+                  background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)',
+                  border: '1px solid var(--pl-accent-2)',
+                }}
               >
                 Today
               </button>
             )}
           </div>
-          <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+          <button
+            onClick={nextMonth}
+            className="flex items-center justify-center transition-all hover:opacity-70"
+            style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', border: '1px solid var(--line)', background: 'var(--surface-2)', color: 'var(--ink-2)' }}
+          >
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Day headers — Mon–Sun */}
-        <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800">
+        {/* Day headers */}
+        <div className="grid grid-cols-7" style={{ borderBottom: '1px solid var(--line)' }}>
           {DAY_NAMES.map(d => (
-            <div key={d} className="text-center py-2.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <div key={d} className="text-center py-2.5" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: 'var(--f-mono)' }}>
               {d}
             </div>
           ))}
@@ -243,9 +227,9 @@ export default function CalendarPage() {
         {loading ? (
           <div className="grid grid-cols-7">
             {[...Array(35)].map((_, i) => (
-              <div key={i} className="min-h-[80px] md:min-h-[96px] border-b border-r border-slate-50 dark:border-slate-800 p-1.5">
-                <div className="animate-pulse h-5 w-5 bg-slate-100 dark:bg-slate-800 rounded-full mb-1.5" />
-                {i % 4 === 0 && <div className="animate-pulse h-3 bg-slate-100 dark:bg-slate-800 rounded w-full" />}
+              <div key={i} className="min-h-[80px] md:min-h-[96px] p-1.5" style={{ borderBottom: '1px solid var(--line)', borderRight: '1px solid var(--line)' }}>
+                <div className="animate-pulse h-5 w-5 rounded-full mb-1.5" style={{ background: 'var(--surface-2)' }} />
+                {i % 4 === 0 && <div className="animate-pulse h-3 rounded w-full" style={{ background: 'var(--surface-2)' }} />}
               </div>
             ))}
           </div>
@@ -253,7 +237,8 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7">
             {cells.map((day, i) => {
               if (day === null) {
-                return <div key={`e-${i}`} className="min-h-[80px] md:min-h-[96px] border-b border-r border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/20" />
+                return <div key={`e-${i}`} className="min-h-[80px] md:min-h-[96px]"
+                  style={{ borderBottom: '1px solid var(--line)', borderRight: '1px solid var(--line)', background: 'var(--bg-2)' }} />
               }
               const isToday = isCurrentMonth && day === today
               const isSelected = selectedDay === day && panelOpen
@@ -265,41 +250,44 @@ export default function CalendarPage() {
                 <div
                   key={day}
                   onClick={() => handleDayClick(day)}
-                  className={`min-h-[80px] md:min-h-[96px] border-b border-r border-slate-50 dark:border-slate-800 p-1.5 transition-colors ${
-                    isClickable ? 'cursor-pointer' : 'cursor-default'
-                  } ${
-                    isSelected
-                      ? 'bg-brand-light/60 dark:bg-brand/10'
+                  className="min-h-[80px] md:min-h-[96px] p-1.5 transition-colors"
+                  style={{
+                    borderBottom: '1px solid var(--line)',
+                    borderRight: '1px solid var(--line)',
+                    cursor: isClickable ? 'pointer' : 'default',
+                    background: isSelected
+                      ? 'var(--pl-accent-soft)'
                       : isToday
-                      ? 'bg-blue-50/60 dark:bg-blue-950/20'
+                      ? 'color-mix(in srgb, var(--pl-accent) 6%, var(--surface))'
                       : isPast
-                      ? 'bg-slate-50/50 dark:bg-slate-800/30'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  }`}
+                      ? 'var(--bg-2)'
+                      : 'var(--surface)',
+                  }}
                 >
-                  <div className={`text-[13px] font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                    isToday
-                      ? 'bg-brand text-white'
-                      : isSelected
-                      ? 'bg-brand/20 text-brand'
-                      : 'text-slate-700 dark:text-slate-300'
-                  }`}>
+                  <div
+                    className="text-[13px] font-semibold mb-1 w-6 h-6 flex items-center justify-center rounded-full"
+                    style={{
+                      background: isToday ? 'var(--pl-accent)' : isSelected ? 'var(--pl-accent-soft)' : 'transparent',
+                      color: isToday ? '#fff' : isSelected ? 'var(--pl-accent)' : 'var(--ink-2)',
+                    }}
+                  >
                     {day}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {dayPosts.slice(0, 2).map(post => {
-                      const s = STATUS_COLOR[post.status] || STATUS_COLOR.draft
-                      return (
-                        <div
-                          key={post.id}
-                          className={`text-[10px] rounded px-1 py-0.5 truncate font-medium leading-tight ${s.bg} ${s.text}`}
-                        >
-                          {post.content?.slice(0, 22)}…
-                        </div>
-                      )
-                    })}
+                    {dayPosts.slice(0, 2).map(post => (
+                      <div
+                        key={post.id}
+                        className="text-[10px] rounded px-1 py-0.5 truncate font-medium leading-tight"
+                        style={{
+                          background: (STATUS_COLOR[post.status] || 'var(--ink-4)') + '18',
+                          color: STATUS_COLOR[post.status] || 'var(--ink-4)',
+                        }}
+                      >
+                        {post.content?.slice(0, 22)}…
+                      </div>
+                    ))}
                     {dayPosts.length > 2 && (
-                      <div className="text-[10px] text-slate-400 pl-0.5">+{dayPosts.length - 2} more</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-4)', paddingLeft: 2 }}>+{dayPosts.length - 2} more</div>
                     )}
                   </div>
                 </div>
@@ -309,115 +297,119 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* Color legend */}
-      <div className="mt-4 flex flex-wrap gap-2.5">
-        {LEGEND.map(key => {
-          const s = STATUS_COLOR[key]
-          if (!s) return null
-          return (
-            <div key={key} className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${s.dot}`} />
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{s.label}</span>
-            </div>
-          )
-        })}
+      {/* Legend */}
+      <div className="mt-4 flex flex-wrap gap-3">
+        {LEGEND.map(key => (
+          <div key={key} className="flex items-center gap-1.5">
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[key] || 'var(--ink-4)' }} />
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-4)' }}>{STATUS_LABEL[key]}</span>
+          </div>
+        ))}
       </div>
 
-      {/* ── Slide-in day detail panel ── */}
+      {/* Day detail panel */}
       {panelOpen && (
         <>
-          {/* Overlay */}
+          <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={closePanel} />
           <div
-            className="fixed inset-0 bg-black/20 dark:bg-black/40 z-40"
-            onClick={closePanel}
-          />
-          {/* Panel */}
-          <div className="fixed right-0 top-0 h-full w-full sm:w-80 bg-white dark:bg-slate-900 shadow-2xl z-50 flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100">
+            className="fixed right-0 top-0 h-full w-full sm:w-80 z-50 flex flex-col"
+            style={{ background: 'var(--surface)', borderLeft: '1px solid var(--line)', boxShadow: 'var(--sh-3)' }}
+          >
+            <div className="flex items-center justify-between px-5 py-4 shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
+              <h3 style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
                 {MONTH_NAMES[month]} {selectedDay}, {year}
               </h3>
-              <button
-                onClick={closePanel}
-                className="p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-4 h-4 text-slate-500" />
+              <button onClick={closePanel} className="transition-opacity hover:opacity-70"
+                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--r-sm)', color: 'var(--ink-3)' }}>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
               {selectedDayPosts.length === 0 ? (
-                <EmptyState
-                  icon={Sparkles}
-                  title="No posts for this day"
-                  subtitle="Generate a post and schedule it to this date."
-                  ctaLabel="Generate a post"
-                  ctaHref="/dashboard/generate"
-                />
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 12 }}>No posts for this day.</div>
+                  <Link href="/dashboard/generate"
+                    className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                    style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '7px 14px', fontSize: 13, fontWeight: 600 }}>
+                    <Sparkles className="w-3.5 h-3.5" /> Generate a post
+                  </Link>
+                </div>
               ) : (
                 <div className="flex flex-col gap-4">
                   {selectedDayPosts.map(post => (
                     <div key={post.id}>
-                      <PostCard
-                        id={post.id}
-                        content={post.content}
-                        scheduledAt={post.scheduled_at}
-                        status={post.status}
-                      />
+                      <div style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-md)', padding: 12 }}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span style={{
+                            fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 'var(--r-full)',
+                            background: (STATUS_COLOR[post.status] || 'var(--ink-4)') + '18',
+                            color: STATUS_COLOR[post.status] || 'var(--ink-4)',
+                          }}>
+                            {STATUS_LABEL[post.status] || post.status}
+                          </span>
+                          {post.scheduled_at && (
+                            <span style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+                              {new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{post.content?.slice(0, 120)}{(post.content?.length || 0) > 120 ? '…' : ''}</p>
+                      </div>
                       {editingPost?.id === post.id ? (
-                        <div className="mt-2 bg-slate-50 border border-slate-100 rounded-xl p-3 flex flex-col gap-3">
+                        <div className="mt-2 p-3 flex flex-col gap-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-md)' }}>
                           <div>
-                            <div className="text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1"><Clock className="w-3 h-3" /> Reschedule time</div>
-                            <Input
-                              type="datetime-local"
-                              value={editTime}
-                              onChange={e => setEditTime(e.target.value)}
+                            <div className="flex items-center gap-1 mb-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)' }}>
+                              <Clock className="w-3 h-3" /> Reschedule time
+                            </div>
+                            <Input type="datetime-local" value={editTime} onChange={e => setEditTime(e.target.value)}
                               min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                               className="text-[13px] h-8"
-                            />
-                            <p className="text-[10px] text-slate-400 mt-1">Your local timezone</p>
+                              style={{ background: 'var(--bg)', border: '1px solid var(--line)', color: 'var(--ink)' }} />
+                            <p style={{ fontSize: 10, color: 'var(--ink-4)', marginTop: 4 }}>Your local timezone</p>
                           </div>
                           <div>
-                            <div className="text-[11px] font-semibold text-slate-500 mb-1 flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Add photos</div>
+                            <div className="flex items-center gap-1 mb-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)' }}>
+                              <ImageIcon className="w-3 h-3" /> Add photos
+                            </div>
                             {editImages.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 mb-2">
                                 {editImages.map(img => (
-                                  <div key={img.id} className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200 group">
+                                  <div key={img.id} className="relative w-12 h-12 rounded-lg overflow-hidden group" style={{ border: '1px solid var(--line)' }}>
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={img.public_url} alt="" className="w-full h-full object-cover" />
-                                    <button
-                                      onClick={() => setEditImages(prev => prev.filter(i => i.id !== img.id))}
-                                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                                    >
+                                    <button onClick={() => setEditImages(prev => prev.filter(i => i.id !== img.id))}
+                                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                      style={{ background: 'rgba(0,0,0,0.4)' }}>
                                       <X className="w-3 h-3 text-white" />
                                     </button>
                                   </div>
                                 ))}
                               </div>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => setImageSelectorOpen(true)}
-                              className="text-[11px] font-medium text-slate-500 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:border-brand/40 hover:text-brand transition-all flex items-center gap-1.5"
-                            >
+                            <button type="button" onClick={() => setImageSelectorOpen(true)}
+                              className="flex items-center gap-1.5 transition-all hover:opacity-70"
+                              style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '5px 10px' }}>
                               <ImageIcon className="w-3 h-3" />
                               {editImages.length > 0 ? `${editImages.length} selected` : 'Pick from library'}
                             </button>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={savePostEdit} disabled={saving} className="flex-1 h-7 text-[12px]">
-                              {saving ? 'Saving...' : 'Save'}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => { setEditingPost(null); setEditTime(''); setEditImages([]) }} className="h-7 text-[12px]">
+                            <button onClick={savePostEdit} disabled={saving}
+                              className="flex-1 transition-opacity"
+                              style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
+                              {saving ? 'Saving…' : 'Save'}
+                            </button>
+                            <button onClick={() => { setEditingPost(null); setEditTime(''); setEditImages([]) }}
+                              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '6px 12px', fontSize: 12, fontWeight: 500, color: 'var(--ink-2)' }}>
                               Cancel
-                            </Button>
+                            </button>
                           </div>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => startEditPost(post)}
-                          className="mt-1.5 text-[11px] text-slate-400 hover:text-brand flex items-center gap-1 transition-colors"
-                        >
+                        <button onClick={() => startEditPost(post)}
+                          className="mt-1.5 flex items-center gap-1 transition-all hover:opacity-70"
+                          style={{ fontSize: 11, color: 'var(--ink-4)' }}>
                           <Pencil className="w-3 h-3" /> Edit time &amp; photos
                         </button>
                       )}
@@ -428,12 +420,11 @@ export default function CalendarPage() {
             </div>
 
             {selectedDay && !isDayPast(selectedDay) && (
-              <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
-                <Link href="/dashboard/generate" className="w-full">
-                  <Button size="sm" className="w-full gap-1.5">
-                    <Plus className="w-3.5 h-3.5" />
-                    Add post to this date
-                  </Button>
+              <div className="px-4 py-3 shrink-0" style={{ borderTop: '1px solid var(--line)' }}>
+                <Link href="/dashboard/generate"
+                  className="flex items-center justify-center gap-1.5 w-full transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '8px 16px', fontSize: 13, fontWeight: 600 }}>
+                  <Plus className="w-3.5 h-3.5" /> Add post to this date
                 </Link>
               </div>
             )}
@@ -441,27 +432,27 @@ export default function CalendarPage() {
         </>
       )}
 
-      {/* ── Empty day dialog ── */}
+      {/* Empty day dialog */}
       <Dialog open={addPostDay !== null} onOpenChange={open => { if (!open) setAddPostDay(null) }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
           <DialogHeader>
-            <DialogTitle>Schedule a post for {addPostDateStr}</DialogTitle>
+            <DialogTitle style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, color: 'var(--ink)' }}>
+              Schedule for {addPostDateStr}
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-500 -mt-2 mb-4">
-            No posts scheduled for this day. Generate one with AI or write manually.
+          <p style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: -4, marginBottom: 16 }}>
+            No posts scheduled for this day. Generate one with AI or browse all posts.
           </p>
           <div className="flex flex-col gap-2">
-            <Link href="/dashboard/generate" onClick={() => setAddPostDay(null)}>
-              <Button className="w-full gap-2">
-                <Sparkles className="w-4 h-4" />
-                Generate with AI
-              </Button>
+            <Link href="/dashboard/generate" onClick={() => setAddPostDay(null)}
+              className="flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+              style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '10px 16px', fontSize: 14, fontWeight: 600 }}>
+              <Sparkles className="w-4 h-4" /> Generate with AI
             </Link>
-            <Link href="/dashboard/posts" onClick={() => setAddPostDay(null)}>
-              <Button variant="outline" className="w-full gap-2">
-                <CalendarDays className="w-4 h-4" />
-                View all posts
-              </Button>
+            <Link href="/dashboard/posts" onClick={() => setAddPostDay(null)}
+              className="flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '10px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-2)' }}>
+              <CalendarDays className="w-4 h-4" /> View all posts
             </Link>
           </div>
         </DialogContent>

@@ -15,28 +15,18 @@ function formatAge(createdAt: string): { label: string; fresh: boolean } {
   if (hours < 24) return { label: `${Math.floor(hours)} hours ago`, fresh: false }
   return { label: `${Math.floor(days)} day${Math.floor(days) !== 1 ? 's' : ''} ago`, fresh: false }
 }
+
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
-  RefreshCw,
-  Flame,
-  TrendingUp,
-  BookOpen,
-  Repeat2,
-  Lightbulb,
-  X,
-  ArrowRight,
-  Zap,
-  Lock,
-  ThumbsUp,
-  Eye,
+  RefreshCw, Flame, TrendingUp, BookOpen, Repeat2, Lightbulb, X,
+  ArrowRight, Zap, Lock, ThumbsUp, Eye,
 } from 'lucide-react'
-import { EmptyState } from '@/components/empty-state'
 
 type SuggestionTab = 'trending' | 'history' | 'stories' | 'repurpose'
+
+const SOURCE_LABEL: Record<string, string> = {
+  news: 'Trending', trends: 'Trending', history: 'Your History', story_bank: 'Story Bank',
+}
 
 export default function SuggestionsPage() {
   const [tab, setTab] = useState<SuggestionTab>('trending')
@@ -55,11 +45,7 @@ export default function SuggestionsPage() {
   function applySuggestions(data: PostSuggestion[], lastGeneratedAt?: string | null) {
     setSuggestions(data)
     const ts = lastGeneratedAt || (data.length > 0 ? data[0].created_at : null)
-    if (ts) {
-      const { label, fresh } = formatAge(ts)
-      setIdeasAge(label)
-      setIdeasFresh(fresh)
-    }
+    if (ts) { const { label, fresh } = formatAge(ts); setIdeasAge(label); setIdeasFresh(fresh) }
   }
 
   useEffect(() => {
@@ -72,35 +58,24 @@ export default function SuggestionsPage() {
         if (cancelled) return
         setPlan(profile?.plan || 'starter')
         setUserId(user.id)
-
         const [suggestionsRes, postsRes] = await Promise.all([
           fetch('/api/suggestions/refresh'),
           supabase.from('posts').select('*').eq('user_id', user.id).eq('status', 'published').order('reactions', { ascending: false }).limit(10),
         ])
         if (cancelled) return
-
         const suggestionsData = await suggestionsRes.json()
         const data: PostSuggestion[] = suggestionsData.suggestions || []
         applySuggestions(data, suggestionsData.last_generated_at)
         setTopPosts(postsRes.data || [])
-
-        // Auto-refresh in background if ideas are stale (older than 6 hours)
         if (data.length > 0) {
           const hoursDiff = (Date.now() - new Date(data[0].created_at).getTime()) / (1000 * 60 * 60)
           if (hoursDiff >= 6) {
-            fetch('/api/suggestions/refresh', { method: 'POST' })
-              .then(r => r.json())
-              .then(d => {
-                if (!cancelled && d.suggestions?.length > 0) applySuggestions(d.suggestions, d.last_generated_at)
-              })
-              .catch(() => {})
+            fetch('/api/suggestions/refresh', { method: 'POST' }).then(r => r.json()).then(d => {
+              if (!cancelled && d.suggestions?.length > 0) applySuggestions(d.suggestions, d.last_generated_at)
+            }).catch(() => {})
           }
         }
-      } catch {
-        /* non-fatal */
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+      } catch { /* non-fatal */ } finally { if (!cancelled) setLoading(false) }
     }
     load()
     return () => { cancelled = true }
@@ -113,12 +88,8 @@ export default function SuggestionsPage() {
     const data = await res.json()
     setGenerating(false)
     if (data.error) { toast.error('Error refreshing: ' + data.error); return }
-    if (data.suggestions?.length > 0) {
-      applySuggestions(data.suggestions, data.last_generated_at)
-      toast.success('Fresh ideas generated!')
-    } else {
-      toast.error(data.error || 'No ideas were generated. Please try again.')
-    }
+    if (data.suggestions?.length > 0) { applySuggestions(data.suggestions, data.last_generated_at); toast.success('Fresh ideas generated!') }
+    else toast.error(data.error || 'No ideas were generated. Please try again.')
   }
 
   async function dismissSuggestion(id: string) {
@@ -127,11 +98,9 @@ export default function SuggestionsPage() {
   }
 
   async function repurposePost(post: Post) {
-    setRepurposedPost(post)
-    setRepurposing(true)
+    setRepurposedPost(post); setRepurposing(true)
     const res = await fetch('/api/posts/repurpose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId: post.id }) })
-    const data = await res.json()
-    setRepurposing(false)
+    const data = await res.json(); setRepurposing(false)
     if (data.error) { toast.error('Error: ' + data.error); return }
     setRepurposed(data.angles || [])
   }
@@ -142,230 +111,292 @@ export default function SuggestionsPage() {
     stories: suggestions.filter(s => s.source === 'story_bank'),
   }
 
-  const SOURCE_LABEL: Record<string, string> = {
-    news: 'Trending',
-    trends: 'Trending',
-    history: 'Your History',
-    story_bank: 'Story Bank',
-  }
-
   if (loading) {
     return (
       <div className="p-4 md:p-7 w-full">
-        <div className="h-8 w-56 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse mb-6" />
+        <div className="h-8 w-56 rounded-lg animate-pulse mb-6" style={{ background: 'var(--surface-2)' }} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse" />
-          ))}
+          {[...Array(6)].map((_, i) => <div key={i} className="h-48 rounded-2xl animate-pulse" style={{ background: 'var(--surface-2)' }} />)}
         </div>
       </div>
     )
   }
 
-  const currentSuggestions = tab === 'trending' ? bySource.trending : tab === 'history' ? bySource.history : bySource.stories
+  const tabs: { id: SuggestionTab; label: string; icon: React.ElementType; count?: number; locked?: boolean }[] = [
+    { id: 'trending', label: 'Trending', icon: Flame, count: bySource.trending.length },
+    { id: 'history', label: 'Your History', icon: TrendingUp, count: bySource.history.length },
+    { id: 'stories', label: 'Story Bank', icon: BookOpen, count: bySource.stories.length },
+    { id: 'repurpose', label: 'Repurpose', icon: Repeat2, locked: plan === 'starter' },
+  ]
 
-  const emptyIcons = {
-    trending: Flame,
-    history: TrendingUp,
-    stories: BookOpen,
-  }
+  const currentSuggestions = tab === 'trending' ? bySource.trending : tab === 'history' ? bySource.history : bySource.stories
 
   return (
     <div className="p-4 md:p-7 w-full">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Post Ideas</h1>
+          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
+            Trending Ideas
+          </h1>
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-slate-400 text-sm font-medium">Fresh ideas tailored to your industry and voice</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)' }}>Fresh ideas tailored to your industry and voice</p>
             {ideasAge && (
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${ideasFresh ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                {ideasFresh ? '● ' : '⚠ '}{generating ? 'Refreshing...' : `Generated ${ideasAge}`}
+              <span style={{
+                fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-full)',
+                background: ideasFresh ? '#059669' + '18' : '#f59e0b' + '18',
+                color: ideasFresh ? '#059669' : '#d97706',
+                border: '1px solid ' + (ideasFresh ? '#059669' + '30' : '#f59e0b' + '30'),
+              }}>
+                {generating ? 'Refreshing…' : `Generated ${ideasAge}`}
               </span>
             )}
           </div>
         </div>
-        <Button variant="outline" onClick={refreshSuggestions} disabled={generating} size="sm" className="gap-1.5 border-slate-200 w-full sm:w-auto">
+        <button
+          onClick={refreshSuggestions}
+          disabled={generating}
+          className="flex items-center gap-1.5 transition-all hover:opacity-80 w-full sm:w-auto justify-center sm:justify-start"
+          style={{
+            border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '7px 14px',
+            fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', background: 'var(--surface)',
+            opacity: generating ? 0.6 : 1,
+          }}
+        >
           <RefreshCw className={`size-3.5 ${generating ? 'animate-spin' : ''}`} />
-          {generating ? 'Generating...' : 'Refresh Ideas'}
-        </Button>
+          {generating ? 'Generating…' : 'Refresh Ideas'}
+        </button>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as SuggestionTab)}>
-        <TabsList className="mb-6 h-10 gap-1 p-1 w-full justify-start">
-          <TabsTrigger value="trending" className="gap-1.5 text-[13px]">
-            <Flame className="w-3.5 h-3.5" />
-            Trending
-          </TabsTrigger>
-          <TabsTrigger value="history" className="gap-1.5 text-[13px]">
-            <TrendingUp className="w-3.5 h-3.5" />
-            Your History
-          </TabsTrigger>
-          <TabsTrigger value="stories" className="gap-1.5 text-[13px]">
-            <BookOpen className="w-3.5 h-3.5" />
-            Story Bank
-          </TabsTrigger>
-          <TabsTrigger value="repurpose" className="gap-1.5 text-[13px]" disabled={plan === 'starter'}>
-            <Repeat2 className="w-3.5 h-3.5" />
-            Repurpose
-            {plan === 'starter' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-brand-light text-brand ml-0.5">PRO</Badge>}
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 p-1 overflow-x-auto" style={{ background: 'var(--surface-2)', borderRadius: 'var(--r-md)', width: 'fit-content' }}>
+        {tabs.map(t => {
+          const Icon = t.icon
+          const active = tab === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => { if (!t.locked) setTab(t.id) }}
+              className="flex items-center gap-1.5 transition-all whitespace-nowrap"
+              style={{
+                padding: '6px 12px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500,
+                background: active ? 'var(--surface)' : 'transparent',
+                color: active ? 'var(--ink)' : t.locked ? 'var(--ink-4)' : 'var(--ink-3)',
+                boxShadow: active ? 'var(--sh-1)' : 'none',
+                cursor: t.locked ? 'not-allowed' : 'pointer',
+                opacity: t.locked ? 0.6 : 1,
+              }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {t.label}
+              {t.locked && <Lock className="w-3 h-3 ml-0.5" style={{ color: '#f59e0b' }} />}
+              {t.count !== undefined && t.count > 0 && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 'var(--r-full)',
+                  background: active ? 'var(--pl-accent)' : 'var(--surface-3)', color: active ? '#fff' : 'var(--ink-3)',
+                }}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
 
-        {(['trending', 'history', 'stories'] as SuggestionTab[]).map(tabId => (
-          <TabsContent key={tabId} value={tabId} className="w-full">
-            {currentSuggestions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center w-full min-h-[400px] text-center">
-                <EmptyState
-                  icon={emptyIcons[tabId as keyof typeof emptyIcons]}
-                  title="No suggestions yet"
-                  subtitle='Click "Refresh Ideas" to generate fresh post ideas for your industry.'
-                  ctaLabel={generating ? 'Generating...' : 'Generate Ideas Now'}
-                  onCta={generating ? undefined : refreshSuggestions}
-                />
+      {/* Trending / History / Stories tab content */}
+      {tab !== 'repurpose' && (
+        currentSuggestions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[300px] text-center">
+            <div className="flex items-center justify-center mb-4"
+              style={{ width: 48, height: 48, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+              {tab === 'trending' ? <Flame className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+                : tab === 'history' ? <TrendingUp className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+                : <BookOpen className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />}
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>No suggestions yet</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>Click &ldquo;Refresh Ideas&rdquo; to generate fresh post ideas.</div>
+            <button
+              onClick={generating ? undefined : refreshSuggestions}
+              disabled={generating}
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+              style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '8px 16px', fontSize: 13, fontWeight: 600 }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {generating ? 'Generating…' : 'Generate Ideas Now'}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+            {currentSuggestions.map(s => (
+              <div
+                key={s.id}
+                className="flex flex-col transition-all"
+                style={{
+                  background: 'var(--surface)', border: '1px solid var(--line)',
+                  borderRadius: 'var(--r-lg)', padding: '14px 16px',
+                }}
+              >
+                <div className="flex items-center justify-between mb-2.5">
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-full)',
+                    textTransform: 'uppercase', letterSpacing: '0.07em',
+                    background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)',
+                  }}>
+                    {SOURCE_LABEL[s.source] || 'General'}
+                  </span>
+                  <button
+                    onClick={() => dismissSuggestion(s.id)}
+                    className="transition-opacity hover:opacity-60"
+                    style={{ color: 'var(--ink-4)', padding: 2 }}
+                    title="Dismiss"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)', lineHeight: 1.5, flexGrow: 1, marginBottom: 8 }}>{s.suggestion_text}</p>
+                {s.why_it_works && (
+                  <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, marginBottom: 10 }} className="line-clamp-2">{s.why_it_works}</p>
+                )}
+                {s.hashtags && s.hashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {s.hashtags.slice(0, 3).map(h => (
+                      <span key={h} style={{ fontSize: 11, color: 'var(--pl-accent)', background: 'var(--pl-accent-soft)', borderRadius: 'var(--r-sm)', padding: '1px 6px' }}>
+                        #{h}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <Link
+                  href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`}
+                  className="flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80 mt-auto"
+                  style={{
+                    background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)',
+                    padding: '7px 12px', fontSize: 13, fontWeight: 600,
+                  }}
+                >
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  Use this idea
+                </Link>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Repurpose tab */}
+      {tab === 'repurpose' && (
+        plan === 'starter' ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center"
+            style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}>
+            <div className="relative inline-block mb-5">
+              <div className="flex items-center justify-center"
+                style={{ width: 56, height: 56, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+                <Repeat2 className="w-7 h-7" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: '#f59e0b', boxShadow: 'var(--sh-1)' }}>
+                <Lock className="w-3 h-3 text-white" strokeWidth={2.5} />
+              </div>
+            </div>
+            <h2 style={{ fontWeight: 600, fontSize: 18, color: 'var(--ink)', marginBottom: 10 }}>Repurpose Engine is a Pro feature</h2>
+            <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20, maxWidth: 320, lineHeight: 1.5 }}>
+              Turn your best post into 3 new angles. Maximum reach, minimum effort.
+            </p>
+            <Link href="/dashboard/settings?tab=plan"
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+              style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 'var(--r-sm)', padding: '9px 18px', fontSize: 14, fontWeight: 600 }}>
+              <Zap className="w-4 h-4" /> Upgrade to Pro
+            </Link>
+          </div>
+        ) : !repurposedPost ? (
+          <div>
+            <div className="flex items-center gap-2 mb-4" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
+              <Repeat2 className="w-4 h-4" style={{ color: 'var(--ink-4)' }} />
+              Pick a post to repurpose:
+            </div>
+            {topPosts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center"
+                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}>
+                <Repeat2 className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+                <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>No published posts yet. Publish some posts first!</div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-                {currentSuggestions.map(s => (
-                  <div key={s.id} className="border border-slate-100 dark:border-slate-800 rounded-2xl p-4 hover:border-brand hover:shadow-md transition-all bg-white dark:bg-slate-900 flex flex-col shadow-sm">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-[11px] font-bold text-brand bg-brand-light px-2.5 py-1 rounded-full uppercase tracking-wide">
-                        {SOURCE_LABEL[s.source] || 'General'}
-                      </span>
-                      <button
-                        onClick={() => dismissSuggestion(s.id)}
-                        className="text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 transition-colors p-0.5"
-                        title="Dismiss"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 mb-2 text-sm leading-snug flex-1">{s.suggestion_text}</p>
-                    {s.why_it_works && (
-                      <p className="text-slate-500 dark:text-slate-400 text-xs mb-3 leading-relaxed line-clamp-2">{s.why_it_works}</p>
-                    )}
-                    {s.hashtags && s.hashtags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {s.hashtags.slice(0, 3).map(h => (
-                          <span key={h} className="text-[11px] text-brand bg-brand-light px-1.5 py-0.5 rounded">#{h}</span>
-                        ))}
+              <div className="flex flex-col gap-3">
+                {topPosts.map(post => (
+                  <div
+                    key={post.id}
+                    className="group cursor-pointer transition-all"
+                    onClick={() => repurposePost(post)}
+                    style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '14px 16px', background: 'var(--surface)' }}
+                  >
+                    <p className="overflow-hidden mb-2" style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {post.content}
+                    </p>
+                    <div className="flex gap-4 items-center">
+                      <div className="flex gap-3">
+                        {post.reactions != null && (
+                          <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
+                            <ThumbsUp className="w-3 h-3" /> {post.reactions}
+                          </span>
+                        )}
+                        {post.impressions != null && (
+                          <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
+                            <Eye className="w-3 h-3" /> {post.impressions?.toLocaleString()}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <Link href={`/dashboard/generate?idea=${encodeURIComponent(s.suggestion_text)}`} className="mt-auto">
-                      <Button size="sm" className="w-full gap-1.5">
-                        <Lightbulb className="w-3.5 h-3.5" />
-                        Use this idea
-                      </Button>
+                      <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ fontSize: 12, color: 'var(--pl-accent)', fontWeight: 600 }}>
+                        <Repeat2 className="w-3 h-3" /> Repurpose
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <button
+              onClick={() => { setRepurposedPost(null); setRepurposed([]) }}
+              className="flex items-center gap-1.5 mb-5 transition-opacity hover:opacity-70"
+              style={{ fontSize: 13, color: 'var(--ink-4)' }}
+            >
+              ← Pick a different post
+            </button>
+            {repurposing ? (
+              <div className="flex flex-col items-center justify-center py-14 text-center"
+                style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}>
+                <div className="flex items-center justify-center mb-4"
+                  style={{ width: 48, height: 48, borderRadius: 'var(--r-md)', background: 'var(--pl-accent-soft)' }}>
+                  <Repeat2 className="w-6 h-6 animate-spin" style={{ color: 'var(--pl-accent)' }} strokeWidth={1.5} />
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 500 }}>Generating 3 new angles…</div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {repurposed.map((angle, i) => (
+                  <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '16px 18px', background: 'var(--surface)' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--pl-accent)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10, fontFamily: 'var(--f-mono)' }}>
+                      // Angle {i + 1}
+                    </div>
+                    <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 14, whiteSpace: 'pre-wrap' }}>{angle}</p>
+                    <Link
+                      href={`/dashboard/generate?idea=${encodeURIComponent(angle.slice(0, 100))}`}
+                      className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                      style={{
+                        border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '6px 12px',
+                        fontSize: 13, fontWeight: 500, color: 'var(--ink-2)',
+                      }}
+                    >
+                      Use this angle <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 ))}
               </div>
             )}
-          </TabsContent>
-        ))}
-
-        <TabsContent value="repurpose">
-          {plan === 'starter' ? (
-            <Card className="border-slate-100 shadow-sm">
-              <CardContent className="py-16 text-center">
-                <div className="relative inline-block mb-5">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto">
-                    <Repeat2 className="w-8 h-8 text-slate-300" strokeWidth={1.5} />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center shadow-sm">
-                    <Lock className="w-3 h-3 text-white" strokeWidth={2.5} />
-                  </div>
-                </div>
-                <h2 className="text-xl font-bold text-slate-900 mb-3">Repurpose Engine is a Pro feature</h2>
-                <p className="text-slate-500 text-sm mb-7 max-w-sm mx-auto">Turn your best post into 3 new angles. Maximum reach, minimum effort.</p>
-                <Button render={<Link href="/dashboard/settings?tab=plan" />} className="gap-1.5">
-                  <Zap className="w-4 h-4" />
-                  Upgrade to Pro
-                </Button>
-              </CardContent>
-            </Card>
-          ) : !repurposedPost ? (
-            <div>
-              <div className="text-[13px] font-bold text-slate-700 mb-4 flex items-center gap-2">
-                <Repeat2 className="w-4 h-4 text-slate-400" />
-                Pick a post to repurpose:
-              </div>
-              {topPosts.length === 0 ? (
-                <Card className="border-slate-100 shadow-sm">
-                  <CardContent className="py-12 text-center">
-                    <Repeat2 className="w-8 h-8 text-slate-200 mx-auto mb-3" strokeWidth={1.5} />
-                    <div className="text-sm text-slate-400">No published posts yet. Publish some posts first!</div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {topPosts.map(post => (
-                    <Card
-                      key={post.id}
-                      className="border-slate-100 shadow-sm card-hover cursor-pointer group"
-                      onClick={() => repurposePost(post)}
-                    >
-                      <CardContent className="pt-4 pb-4">
-                        <p className="text-sm text-slate-600 leading-relaxed mb-2.5 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{post.content}</p>
-                        <div className="flex gap-4 items-center">
-                          <div className="flex gap-3">
-                            {post.reactions != null && (
-                              <span className="flex items-center gap-1 text-xs text-slate-400">
-                                <ThumbsUp className="w-3 h-3" /> {post.reactions}
-                              </span>
-                            )}
-                            {post.impressions != null && (
-                              <span className="flex items-center gap-1 text-xs text-slate-400">
-                                <Eye className="w-3 h-3" /> {post.impressions?.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                          <div className="ml-auto flex items-center gap-1 text-xs text-brand font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Repeat2 className="w-3 h-3" /> Repurpose
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <Button variant="ghost" size="sm" onClick={() => { setRepurposedPost(null); setRepurposed([]) }} className="mb-5 -ml-2 text-slate-500 gap-1.5">
-                ← Pick a different post
-              </Button>
-              {repurposing ? (
-                <Card className="border-slate-100 shadow-sm">
-                  <CardContent className="py-14 text-center">
-                    <div className="w-12 h-12 rounded-2xl bg-pro/10 flex items-center justify-center mx-auto mb-4">
-                      <Repeat2 className="w-6 h-6 text-pro animate-spin" strokeWidth={1.5} />
-                    </div>
-                    <div className="text-sm text-slate-500 font-medium">Generating 3 new angles...</div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {repurposed.map((angle, i) => (
-                    <Card key={i} className="border-slate-100 shadow-sm card-hover">
-                      <CardContent className="pt-5 pb-5">
-                        <div className="text-[11px] font-bold text-brand uppercase tracking-wider mb-3">Angle {i + 1}</div>
-                        <p className="text-sm text-slate-600 leading-relaxed mb-4 whitespace-pre-wrap">{angle}</p>
-                        <Button
-                          render={<Link href={`/dashboard/generate?idea=${encodeURIComponent(angle.slice(0, 100))}`} />}
-                          size="sm" variant="outline"
-                          className="gap-1.5 border-slate-200"
-                        >
-                          Use this angle <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </div>
+        )
+      )}
     </div>
   )
 }

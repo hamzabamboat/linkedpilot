@@ -1,21 +1,70 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
+import {
+  Cormorant_Garamond,
+  DM_Sans,
+  Instrument_Serif,
+  Playfair_Display,
+  Fraunces,
+  Geist,
+  Inter,
+  JetBrains_Mono,
+} from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { Analytics } from '@vercel/analytics/next'
-import { ThemeProvider } from '@/components/theme-provider'
+import { AppearanceProvider } from '@/components/appearance-provider'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant',
+  display: 'swap',
+})
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  variable: '--font-instrument',
+  display: 'swap',
+})
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['500'],
+  style: ['normal', 'italic'],
+  variable: '--font-playfair',
+  display: 'swap',
+})
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['500'],
+  style: ['italic'],
+  variable: '--font-fraunces',
+  display: 'swap',
+})
+const geist = Geist({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-geist',
+  display: 'swap',
+})
 const inter = Inter({
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-inter',
   display: 'swap',
 })
-
-const jakarta = Plus_Jakarta_Sans({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-jakarta',
+  weight: ['400', '500'],
+  variable: '--font-jetbrains',
   display: 'swap',
 })
 
@@ -94,12 +143,21 @@ export const viewport: Viewport = {
   themeColor: '#0B458B',
 }
 
+const fontVars = [
+  cormorant.variable,
+  dmSans.variable,
+  instrumentSerif.variable,
+  playfair.variable,
+  fraunces.variable,
+  geist.variable,
+  inter.variable,
+  jetbrainsMono.variable,
+].join(' ')
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jakarta.variable}`} suppressHydrationWarning>
+    <html lang="en" className={fontVars} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://aoirhksbkoraaywephya.supabase.co" />
         <link rel="preconnect" href="https://checkout.razorpay.com" />
         <meta name="application-name" content="PersonaLink" />
@@ -110,12 +168,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="overflow-x-hidden">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <AppearanceProvider>
           {children}
           <PWAInstallPrompt />
           <Toaster richColors position="top-center" />
           <Analytics />
-        </ThemeProvider>
+        </AppearanceProvider>
       </body>
     </html>
   )

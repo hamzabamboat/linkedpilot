@@ -2,22 +2,13 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { motion, useInView } from 'framer-motion'
 import { useCurrency } from '@/hooks/use-currency'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { AppearanceTrigger } from '@/components/appearance-trigger'
+import { WordMark } from '@/components/word-mark'
 import {
-  Brain,
-  CalendarClock,
-  Mic,
-  TrendingUp,
-  Lightbulb,
-  Repeat2,
-  Check,
-  ArrowRight,
+  Brain, CalendarClock, Mic, TrendingUp, Lightbulb, Repeat2, Check, ArrowRight, Zap,
 } from 'lucide-react'
 
 function LinkedinIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -40,12 +31,12 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 const FEATURES = [
-  { icon: Brain,        color: '#0B458B', bg: '#e8f0fb', title: 'AI in Your Voice',    desc: 'Analyses your writing style and generates posts that sound exactly like you wrote them.' },
-  { icon: CalendarClock,color: '#059669', bg: '#ecfdf5', title: 'Smart Scheduling',    desc: 'Posts go live at the best times for your audience — automatically, no babysitting.' },
-  { icon: Mic,          color: '#7c3aed', bg: '#f5f3ff', title: 'Voice Notes',         desc: 'Ramble for 2 minutes. We transcribe, refine, and turn it into a polished post.' },
-  { icon: TrendingUp,   color: '#d97706', bg: '#fffbeb', title: 'LinkedIn Score',      desc: 'Track your profile strength, engagement trends, and consistency over time.' },
-  { icon: Lightbulb,    color: '#0891b2', bg: '#ecfeff', title: 'Trend Suggestions',   desc: 'Get 5 fresh post ideas every week based on what is trending in your industry.' },
-  { icon: Repeat2,      color: '#dc2626', bg: '#fef2f2', title: 'Repurpose Engine',    desc: 'Turn your best post into 3 new angles. Maximum reach, minimum effort.' },
+  { icon: Brain,        title: 'AI in Your Voice',    desc: 'Analyses your writing style and generates posts that sound exactly like you wrote them.' },
+  { icon: CalendarClock,title: 'Smart Scheduling',    desc: 'Posts go live at the best times for your audience — automatically, no babysitting.' },
+  { icon: Mic,          title: 'Voice Notes',         desc: 'Ramble for 2 minutes. We transcribe, refine, and turn it into a polished post.' },
+  { icon: TrendingUp,   title: 'LinkedIn Score',      desc: 'Track your profile strength, engagement trends, and consistency over time.' },
+  { icon: Lightbulb,    title: 'Trend Suggestions',   desc: 'Get 5 fresh post ideas every week based on what is trending in your industry.' },
+  { icon: Repeat2,      title: 'Repurpose Engine',    desc: 'Turn your best post into 3 new angles. Maximum reach, minimum effort.' },
 ]
 
 const FAQS = [
@@ -53,14 +44,25 @@ const FAQS = [
   { q: 'Can I edit posts before they go live?',  a: 'Always. You can choose Full Autopilot, Approve Before Posting, or Suggest Only. You are always in control.' },
   { q: 'How does the LinkedIn connection work?', a: "We use LinkedIn's official OAuth API. We only request posting permissions, never read your messages or connections." },
   { q: 'What happens if I hit my post limit?',   a: 'We send you a heads-up. You can upgrade your plan or wait for the next monthly reset — no surprise charges.' },
-  { q: 'Is Razorpay secure?',                    a: "Yes. All payments go through Razorpay, one of India's most trusted payment gateways. We never store your card details." },
+  { q: 'Is payment secure?',                     a: "Yes. All payments go through Razorpay or Dodo, trusted payment gateways. We never store your card details." },
   { q: 'Can I cancel anytime?',                  a: 'Yes. Cancel in one click from Settings. You keep access until the end of your billing period.' },
 ]
 
 const PLANS = [
-  { id: 'starter',  label: 'Starter',  price: 999,  posts: 12, features: ['AI generation', 'Scheduling', 'Story bank', 'Trends & suggestions', 'Image posts', 'LinkedIn Score'], color: '#64748b' },
-  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'], color: '#0B458B', popular: true },
-  { id: 'pro',      label: 'Pro',      price: 4999, posts: 30, features: ['Everything in Standard', 'Repurpose engine', 'Competitor tracking', 'Bulk generate 30 days', 'Team mode (3 profiles)', 'Priority AI generation'], color: '#7c3aed' },
+  { id: 'starter',  label: 'Starter',  price: 999,  posts: 12, features: ['AI generation', 'Scheduling', 'Story bank', 'Trends & suggestions', 'Image posts', 'LinkedIn Score'] },
+  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: ['Everything in Starter', 'Voice notes', 'Analytics dashboard', 'Monthly image brief'], popular: true },
+  { id: 'pro',      label: 'Pro',      price: 4999, posts: 30, features: ['Everything in Standard', 'Repurpose engine', 'Bulk generate 30 days', 'Team mode (3 profiles)', 'Priority AI generation'] },
+]
+
+const MARQUEE_PHRASES = [
+  'Your voice, amplified.',
+  'Consistency without burnout.',
+  'Posts that sound like you.',
+  'Grow while you sleep.',
+  '3× more DMs.',
+  'From lurker to thought leader.',
+  'AI that learns your style.',
+  'Your LinkedIn, on autopilot.',
 ]
 
 const ease = [0.22, 1, 0.36, 1] as const
@@ -69,24 +71,16 @@ function FadeUp({ children, delay = 0, className = '' }: { children: React.React
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-72px' })
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.65, delay, ease }}
-      className={className}
-    >
+    <motion.div ref={ref} initial={{ opacity: 0, y: 28 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, delay, ease }} className={className}>
       {children}
     </motion.div>
   )
 }
 
-const staggerContainer = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.09 } },
-}
+const staggerContainer = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } }
 const staggerItem = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.55, ease } },
 }
 
@@ -100,20 +94,19 @@ function AnimatedPost() {
     '',
     '3. "We\'ll follow" usually means "we won\'t lead." Ask directly.',
     '',
-    'P.S. — The meeting that changed everything for us started with a cold LinkedIn DM. What\'s the worst that can happen?',
+    'P.S. — The meeting that changed everything for us started with a cold LinkedIn DM.',
     '',
     '#FounderLife #StartupAdvice #VentureCapital',
   ]
   const fullText = post.join('\n')
-
   const [displayed, setDisplayed] = useState('')
   const [cursor, setCursor] = useState(true)
   const idx = useRef(0)
   const done = useRef(false)
 
   useEffect(() => {
-    const cursorTimer = setInterval(() => setCursor(c => !c), 530)
-    return () => clearInterval(cursorTimer)
+    const t = setInterval(() => setCursor(c => !c), 530)
+    return () => clearInterval(t)
   }, [])
 
   useEffect(() => {
@@ -128,38 +121,37 @@ function AnimatedPost() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 40, scale: 0.96 }}
+      initial={{ opacity: 0, x: 36, scale: 0.96 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ duration: 0.85, delay: 0.4, ease }}
-      className="bg-white rounded-2xl p-5 md:p-7 max-w-[460px] w-full border border-white/10"
-      style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 80px rgba(37,99,235,0.12), 0 1px 0 rgba(255,255,255,0.08)' }}
+      style={{
+        background: '#fff', borderRadius: 20, padding: '24px 28px',
+        maxWidth: 440, width: '100%',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45), 0 0 80px color-mix(in srgb, var(--pl-accent) 12%, transparent), 0 1px 0 rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.1)',
+      }}
     >
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0B458B] to-[#083670] flex items-center justify-center text-white font-bold text-lg shadow-sm">A</div>
+        <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg"
+          style={{ background: 'var(--pl-accent)' }}>A</div>
         <div>
-          <div className="font-semibold text-slate-900 text-sm">Arjun Mehta</div>
-          <div className="text-slate-500 text-xs">Founder & CEO · 1st</div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: '#0a1024' }}>Arjun Mehta</div>
+          <div style={{ fontSize: 12, color: '#8a92a6' }}>Founder &amp; CEO · 1st</div>
         </div>
-        <div className="ml-auto bg-[#0B458B] text-white rounded-full px-3.5 py-1 text-xs font-semibold">+ Follow</div>
+        <div className="ml-auto rounded-full px-3.5 py-1 text-xs font-semibold" style={{ background: 'var(--pl-accent)', color: '#fff' }}>+ Follow</div>
       </div>
-
-      <div className="text-sm text-slate-600 leading-[1.75] whitespace-pre-wrap min-h-[220px] font-[system-ui]">
+      <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.75, whiteSpace: 'pre-wrap', minHeight: 200 }}>
         {displayed}
-        <motion.span
-          animate={{ opacity: cursor ? 1 : 0 }}
-          transition={{ duration: 0 }}
-          className="font-bold text-[#0B458B]"
-        >|</motion.span>
+        <motion.span animate={{ opacity: cursor ? 1 : 0 }} transition={{ duration: 0 }} style={{ fontWeight: 700, color: 'var(--pl-accent)' }}>|</motion.span>
       </div>
-
-      <div className="mt-4 flex gap-5 border-t border-slate-100 pt-3.5">
+      <div className="mt-4 flex gap-5 pt-3.5" style={{ borderTop: '1px solid #f1f5f9' }}>
         {['👍 Like', '💬 Comment', '🔁 Repost'].map(a => (
-          <span key={a} className="text-xs text-slate-500 font-medium">{a}</span>
+          <span key={a} style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>{a}</span>
         ))}
       </div>
       <div className="mt-2.5">
-        <span className="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5 text-[11px] text-green-700 font-semibold">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5" style={{ fontSize: 11, fontWeight: 600, background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', border: '1px solid var(--pl-accent-2)' }}>
+          <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: 'var(--pl-accent)' }} />
           AI-generated in your voice
         </span>
       </div>
@@ -167,84 +159,11 @@ function AnimatedPost() {
   )
 }
 
-function PricingSlider() {
-  const [idx, setIdx] = useState(1)
-  const plan = PLANS[idx]
-  const currency = useCurrency()
-  const prices: Record<string, number> = { starter: currency.starter, standard: currency.standard, pro: currency.pro }
-  const price = prices[plan.id]
-
+/* Eyebrow label for landing sections */
+function SectionEyebrow({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
   return (
-    <div className="bg-white rounded-2xl p-6 md:p-10 border border-slate-200/70 max-w-[600px] mx-auto" style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.05)' }}>
-      <div className="text-center mb-8">
-        <motion.div
-          key={idx}
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease }}
-          className="text-5xl font-black tracking-tight"
-          style={{ color: plan.color }}
-        >
-          {currency.symbol}{price.toLocaleString()}<span className="text-lg font-medium text-slate-400">/mo</span>
-        </motion.div>
-        <div className="text-slate-500 text-base mt-1.5">
-          {plan.posts} posts/month
-          {currency.code !== 'INR' && <span className="text-xs text-slate-400 ml-1.5">(Billed in INR)</span>}
-        </div>
-      </div>
-
-      <input
-        type="range" min={0} max={2} step={1} value={idx}
-        onChange={e => setIdx(Number(e.target.value))}
-        className="mb-4"
-        style={{ background: `linear-gradient(to right, ${plan.color} ${idx * 50}%, #e2e8f0 ${idx * 50}%)` }}
-      />
-
-      <div className="flex justify-between mb-8">
-        {PLANS.map((p, i) => (
-          <button key={p.id} onClick={() => setIdx(i)}
-            className="bg-transparent border-none cursor-pointer text-sm px-2 py-1 transition-colors rounded-lg"
-            style={{ fontWeight: i === idx ? 700 : 400, color: i === idx ? plan.color : '#94a3b8' }}>
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <motion.div
-        key={idx}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col gap-3"
-      >
-        {plan.features.map(f => (
-          <div key={f} className="flex items-center gap-2.5 text-[15px] text-slate-600">
-            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: plan.color + '15' }}>
-              <Check className="w-3 h-3" style={{ color: plan.color }} strokeWidth={2.5} />
-            </div>
-            {f}
-          </div>
-        ))}
-      </motion.div>
-
-      <Button
-        render={<a href="/api/auth/linkedin" />}
-        className="w-full mt-8 h-14 text-base font-bold"
-        style={{ background: plan.color }}
-      >
-        Start Free Trial — {plan.label}
-        <ArrowRight className="w-4 h-4 ml-2" />
-      </Button>
-      <p className="text-center text-[12px] text-slate-400 mt-3">Free for 7 days, then {currency.symbol}{price.toLocaleString()}/mo. Cancel anytime.</p>
-    </div>
-  )
-}
-
-/* ── Section label shared style ── */
-function SectionLabel({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
-  return (
-    <div className={`text-[11px] font-bold uppercase tracking-[0.14em] mb-4 ${light ? 'text-blue-400' : 'text-[#0B458B]'}`}>
-      {children}
+    <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14, color: light ? 'rgba(255,255,255,0.45)' : 'var(--pl-accent)' }}>
+      // {children}
     </div>
   )
 }
@@ -254,6 +173,7 @@ function HomeContent() {
   const error = searchParams.get('error')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const currency = useCurrency()
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60)
@@ -262,233 +182,266 @@ function HomeContent() {
   }, [])
 
   return (
-    <div>
-      {/* ── Nav ── fixed, scroll-aware */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
-        scrolled
-          ? 'bg-white/95 backdrop-blur-md border-slate-200/60 shadow-[0_1px_16px_rgba(0,0,0,0.06)]'
-          : 'bg-transparent border-white/[0.08]'
-      }`}>
-        <div className="max-w-[1140px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
-            <Image src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" priority />
-          </div>
+    <div style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
 
-          {/* Desktop nav */}
+      {/* ── Nav ── */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        style={{
+          background: scrolled ? 'color-mix(in srgb, var(--surface) 95%, transparent)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(16px)' : 'none',
+          borderBottom: scrolled ? '1px solid var(--line)' : '1px solid rgba(255,255,255,0.06)',
+          boxShadow: scrolled ? '0 1px 16px rgba(0,0,0,0.06)' : 'none',
+        }}
+      >
+        <div className="max-w-[1140px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
+          <WordMark />
+
           <div className="hidden md:flex gap-1 items-center">
-            <a href="#pricing" className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${scrolled ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' : 'text-white/70 hover:text-white'}`}>Pricing</a>
-            <a href="#faq" className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${scrolled ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-50' : 'text-white/70 hover:text-white'}`}>FAQ</a>
-            <div className="mx-1"><ThemeToggle /></div>
-            <Button render={<a href="/api/auth/linkedin" />} className="h-9 px-5 text-sm font-bold gap-2 shadow-sm ml-1">
+            {['#features', '#pricing', '#faq'].map((href, i) => (
+              <a key={href} href={href} className="transition-colors"
+                style={{ padding: '8px 16px', fontSize: 14, fontWeight: 500, borderRadius: 8, color: scrolled ? 'var(--ink-2)' : 'rgba(255,255,255,0.65)' }}>
+                {['Features', 'Pricing', 'FAQ'][i]}
+              </a>
+            ))}
+            <div className="mx-1"><AppearanceTrigger variant="nav" /></div>
+            <a
+              href="/api/auth/linkedin"
+              className="flex items-center gap-2 transition-all hover:opacity-90 ml-1"
+              style={{
+                padding: '8px 18px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                background: 'var(--pl-accent)', color: '#fff',
+              }}
+            >
               <LinkedinIcon className="w-4 h-4" />
               Connect LinkedIn
-            </Button>
+            </a>
           </div>
 
-          {/* Mobile hamburger */}
           <button
-            className={`md:hidden p-2 rounded-lg transition-colors ${scrolled ? 'text-slate-600 hover:bg-slate-100' : 'text-white hover:bg-white/10'}`}
+            className="md:hidden p-2 rounded-lg transition-colors"
+            style={{ color: scrolled ? 'var(--ink-2)' : 'rgba(255,255,255,0.8)' }}
             onClick={() => setMobileMenuOpen(o => !o)}
             aria-label="Menu"
           >
-            {mobileMenuOpen ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-            )}
+            {mobileMenuOpen
+              ? <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              : <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            }
           </button>
         </div>
 
-        {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-slate-100 px-4 py-4 flex flex-col gap-3">
-            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-3 text-slate-700 text-base font-medium border-b border-slate-100">Pricing</a>
-            <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-3 text-slate-700 text-base font-medium border-b border-slate-100">FAQ</a>
-            <Button render={<a href="/api/auth/linkedin" />} className="w-full h-12 text-base font-bold gap-2 mt-1">
+          <div style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', padding: '16px' }} className="md:hidden flex flex-col gap-3">
+            {[['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+              <a key={href} href={href} onClick={() => setMobileMenuOpen(false)}
+                style={{ padding: '12px 0', color: 'var(--ink-2)', fontSize: 16, fontWeight: 500, borderBottom: '1px solid var(--line)' }}>
+                {label}
+              </a>
+            ))}
+            <a href="/api/auth/linkedin" className="flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+              style={{ background: 'var(--pl-accent)', color: '#fff', borderRadius: 10, padding: '14px 20px', fontSize: 16, fontWeight: 600, marginTop: 4 }}>
               <LinkedinIcon className="w-4 h-4" />
               Connect LinkedIn
-            </Button>
+            </a>
           </div>
         )}
       </nav>
 
       {error && (
-        <div className="bg-red-50 border-b border-red-200 px-6 py-3 text-center text-sm text-red-600 relative z-40" style={{ marginTop: '64px' }}>
-          {error === 'linkedin_denied' ? 'LinkedIn permissions were denied. Please try again and accept all permissions.' : 'Something went wrong. Please try again.'}
+        <div className="text-center text-sm px-6 py-3" style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', color: '#dc2626', marginTop: 64 }}>
+          {error === 'linkedin_denied' ? 'LinkedIn permissions were denied. Please try again.' : 'Something went wrong. Please try again.'}
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════
-          HERO — dark navy with Wispr-style blue glow
-          ══════════════════════════════════════════════════════ */}
+      {/* ── Hero ── */}
       <section
         className="relative overflow-hidden"
         style={{ background: 'linear-gradient(170deg, #070d1c 0%, #0b1628 65%, #0f1e3a 100%)', minHeight: '92vh' }}
       >
-        {/* Radial blue glow */}
+        {/* Radial glow behind hero */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div
-            className="absolute -top-48 left-1/2 -translate-x-1/2 w-[900px] h-[700px]"
-            style={{ background: 'radial-gradient(ellipse at center top, rgba(37,99,235,0.55) 0%, rgba(37,99,235,0.12) 40%, transparent 70%)' }}
-          />
-          {/* Dot grid texture */}
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.9) 1px, transparent 0)', backgroundSize: '28px 28px' }}
-          />
+          <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[900px] h-[700px]"
+            style={{ background: 'radial-gradient(ellipse at center top, color-mix(in srgb, var(--pl-accent) 55%, transparent) 0%, transparent 70%)' }} />
+          <div className="absolute inset-0 opacity-[0.025]"
+            style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.9) 1px, transparent 0)', backgroundSize: '28px 28px' }} />
         </div>
 
         <div className="max-w-[1140px] mx-auto px-4 md:px-8 pt-28 md:pt-36 pb-36 md:pb-44 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center relative">
-          {/* Left — copy */}
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
-            className="text-center md:text-left"
-          >
+          <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }} className="text-center md:text-left">
             <motion.div variants={staggerItem}>
-              <div
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6 text-[13px] font-semibold text-blue-300"
-                style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.28)', backdropFilter: 'blur(8px)' }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--pl-accent)' }} />
                 AI-powered LinkedIn growth
               </div>
             </motion.div>
 
-            <motion.h1
-              variants={staggerItem}
-              className="text-[44px] md:text-[72px] font-black text-white leading-[1.0] mb-5 tracking-[-0.04em]"
-            >
+            <motion.h1 variants={staggerItem} className="text-white mb-5"
+              style={{ fontFamily: 'var(--f-sans)', fontWeight: 800, fontSize: 'clamp(40px,7vw,72px)', lineHeight: 1.0, letterSpacing: '-0.04em' }}>
               Your LinkedIn,<br />
-              <span className="gradient-text-hero">on autopilot.</span>
+              <span style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--pl-accent)', letterSpacing: '-0.02em' }}>on autopilot.</span>
             </motion.h1>
 
-            <motion.p
-              variants={staggerItem}
-              className="text-base md:text-lg leading-[1.8] mb-8 max-w-[460px] mx-auto md:mx-0"
-              style={{ color: 'rgba(255,255,255,0.58)' }}
-            >
+            <motion.p variants={staggerItem} className="leading-relaxed mb-8 max-w-[460px] mx-auto md:mx-0"
+              style={{ fontSize: 'clamp(15px,1.5vw,18px)', color: 'rgba(255,255,255,0.55)', lineHeight: 1.8 }}>
               AI writes posts in your exact voice, schedules them at peak times, and grows your personal brand — while you focus on your actual work.
             </motion.p>
 
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-              <Button
-                render={<a href="/api/auth/linkedin" />}
-                className="h-14 px-7 text-base font-bold gap-2.5 bg-white hover:bg-blue-50 text-[#0B458B] shadow-2xl shadow-blue-500/20 transition-all duration-200 w-full sm:w-auto"
-              >
-                <LinkedinIcon className="w-5 h-5 text-[#0B458B]" />
+              <a href="/api/auth/linkedin"
+                className="flex items-center justify-center gap-2.5 transition-all hover:opacity-90"
+                style={{ height: 56, padding: '0 28px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: '#fff', color: 'var(--pl-accent)', boxShadow: '0 24px 64px rgba(43,77,255,0.25)' }}>
+                <LinkedinIcon className="w-5 h-5" style={{ color: 'var(--pl-accent)' }} />
                 Connect LinkedIn — Free
-              </Button>
-              <button
-                onClick={() => window.location.href = '/api/auth/google'}
-                className="h-14 px-7 text-base font-semibold gap-2.5 text-white rounded-lg transition-all duration-200 w-full sm:w-auto flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(8px)' }}
-              >
-                <GoogleIcon className="w-5 h-5 mr-2" />
+              </a>
+              <button onClick={() => window.location.href = '/api/auth/google'}
+                className="flex items-center justify-center gap-2.5 transition-all hover:opacity-80"
+                style={{ height: 56, padding: '0 28px', borderRadius: 12, fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(8px)' }}>
+                <GoogleIcon className="w-5 h-5" />
                 Continue with Google
               </button>
             </motion.div>
 
-            <motion.p
-              variants={staggerItem}
-              className="mt-5 text-[13px] flex items-center gap-2 justify-center md:justify-start"
-              style={{ color: 'rgba(255,255,255,0.35)' }}
-            >
+            <motion.p variants={staggerItem} className="mt-5 flex items-center gap-2 justify-center md:justify-start"
+              style={{ fontSize: 13, color: 'rgba(255,255,255,0.32)' }}>
               <span className="flex -space-x-1.5">
-                {['bg-blue-500', 'bg-purple-500', 'bg-emerald-500'].map((c, i) => (
-                  <span key={i} className={`w-6 h-6 rounded-full border-2 ${c}`} style={{ borderColor: '#0b1628' }} />
+                {['var(--pl-accent)', '#7c3aed', '#059669'].map((c, i) => (
+                  <span key={i} className="w-6 h-6 rounded-full border-2" style={{ background: c, borderColor: '#0b1628' }} />
                 ))}
               </span>
               Join 500+ founders already growing on LinkedIn
             </motion.p>
           </motion.div>
 
-          {/* Right — animated post card */}
           <div className="flex justify-center">
             <AnimatedPost />
           </div>
         </div>
 
-        {/* Fade bottom to white */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-36 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, transparent, #ffffff)' }}
-        />
+        <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+          style={{ background: 'linear-gradient(to bottom, transparent, var(--bg))' }} />
       </section>
 
-      {/* ══════════════════════════════════════════════════════
-          HOW IT WORKS — Runlayer numbered ghost style
-          ══════════════════════════════════════════════════════ */}
-      <section className="bg-white py-20 md:py-28 px-4 md:px-8">
+      {/* ── Marquee strip ── */}
+      <div className="overflow-hidden py-4" style={{ background: 'var(--pl-accent)', borderTop: 'none' }}>
+        <div className="pl-marquee-track">
+          <div className="pl-marquee-inner">
+            {[...MARQUEE_PHRASES, ...MARQUEE_PHRASES].map((phrase, i) => (
+              <span key={i} className="inline-flex items-center gap-4 px-6" style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.9)', fontFamily: 'var(--f-display)', fontStyle: 'italic', whiteSpace: 'nowrap' }}>
+                {phrase}
+                <span style={{ opacity: 0.4 }}>◆</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Stats grid ── */}
+      <FadeUp>
+        <section className="py-16 px-4 md:px-8" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)' }}>
+          <div className="max-w-[1140px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: '500+', label: 'Founders & creators' },
+              { value: '3×',   label: 'Avg DM increase' },
+              { value: '98%',  label: 'Voice accuracy' },
+              { value: '7-day',label: 'Free trial, no card' },
+            ].map(stat => (
+              <div key={stat.value} className="text-center">
+                <div style={{ fontFamily: 'var(--f-sans)', fontWeight: 800, fontSize: 'clamp(28px,4vw,40px)', color: 'var(--pl-accent)', letterSpacing: '-0.04em', marginBottom: 4 }}>
+                  {stat.value}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 500 }}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </FadeUp>
+
+      {/* ── Floating fluid section ── */}
+      <section className="relative overflow-hidden py-24 md:py-36 px-4 md:px-8 text-center" style={{ background: 'var(--bg-2)' }}>
+        {/* Animated blobs */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="pl-mesh">
+            <div className="pl-mesh__blob" style={{ top: '-20%', left: '-10%' }} />
+            <div className="pl-mesh__blob" style={{ bottom: '-20%', right: '-10%', animationDelay: '-8s' }} />
+          </div>
+        </div>
+        <div className="relative max-w-[760px] mx-auto">
+          <FadeUp>
+            <SectionEyebrow>The difference</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(26px,4vw,48px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 20 }}>
+              Most &ldquo;AI writers&rdquo; hand you{' '}
+              <span style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--pl-accent)' }}>a blank box.</span>
+              <br />We hand you your own voice.
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 540, margin: '0 auto' }}>
+              We analyse how you write — sentence rhythm, vocabulary, tone, punctuation quirks. Then every post sounds like you wrote it on a good day.
+            </p>
+          </FadeUp>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section id="features" className="py-20 md:py-28 px-4 md:px-8" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)' }}>
         <div className="max-w-[1140px] mx-auto">
           <FadeUp className="mb-16 md:mb-20">
-            <SectionLabel>How it works</SectionLabel>
-            <h2 className="text-3xl md:text-[52px] font-black text-slate-900 tracking-[-0.035em] leading-[1.05]">
-              Three steps to LinkedIn<br className="hidden md:block" /> on autopilot
+            <SectionEyebrow>How it works</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4vw,52px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.05 }}>
+              Three steps to LinkedIn<br className="hidden md:block" />{' '}
+              <span style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--pl-accent)' }}>on autopilot</span>
             </h2>
           </FadeUp>
 
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-14 md:gap-y-0"
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-          >
+          <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-14 md:gap-y-0"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}>
             {[
-              { n: '01', title: 'Connect LinkedIn',  desc: 'One-click OAuth. We get permission to post on your behalf. Takes 30 seconds.' },
-              { n: '02', title: 'Tell us about you', desc: 'Quick onboarding: your voice, goals, content pillars, and how much control you want.' },
+              { n: '01', title: 'Connect LinkedIn',   desc: 'One-click OAuth. We get permission to post on your behalf. Takes 30 seconds.' },
+              { n: '02', title: 'Tell us about you',  desc: 'Quick onboarding: your voice, goals, content pillars, and how much control you want.' },
               { n: '03', title: 'We handle the rest', desc: 'AI generates posts in your voice, schedules them, tracks analytics, and keeps improving.' },
-            ].map((step) => (
+            ].map(step => (
               <motion.div key={step.n} variants={staggerItem} className="relative">
-                <div
-                  className="font-black leading-none mb-2 tracking-tight select-none"
-                  style={{ fontSize: '96px', color: '#0B458B', opacity: 0.08 }}
-                >
+                <div style={{ fontWeight: 900, lineHeight: 1, marginBottom: 8, fontSize: 96, color: 'var(--pl-accent)', opacity: 0.08, fontFamily: 'var(--f-sans)', letterSpacing: '-0.05em', userSelect: 'none' }}>
                   {step.n}
                 </div>
-                <div className="w-8 h-[3px] bg-[#0B458B] rounded-full mb-5" />
-                <h3 className="font-bold text-slate-900 mb-3 text-[19px] tracking-tight">{step.title}</h3>
-                <p className="text-slate-500 leading-relaxed text-[15px]">{step.desc}</p>
+                <div style={{ width: 32, height: 3, background: 'var(--pl-accent)', borderRadius: 2, marginBottom: 20 }} />
+                <h3 style={{ fontWeight: 700, fontSize: 19, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 10 }}>{step.title}</h3>
+                <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.7 }}>{step.desc}</p>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════
-          FEATURES — sharp white cards on pale blue bg
-          ══════════════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 px-4 md:px-8 border-t border-slate-100" style={{ background: '#f7f9ff' }}>
+      {/* ── Features bento ── */}
+      <section className="py-20 md:py-28 px-4 md:px-8" style={{ background: 'var(--bg-2)', borderTop: '1px solid var(--line)' }}>
         <div className="max-w-[1140px] mx-auto">
           <FadeUp className="mb-14">
-            <SectionLabel>Features</SectionLabel>
-            <h2 className="text-3xl md:text-[52px] font-black text-slate-900 tracking-[-0.035em] leading-[1.05] mb-3">Everything you need</h2>
-            <p className="text-slate-500 text-base md:text-lg max-w-[480px]">Built for founders, executives, and professionals serious about LinkedIn</p>
+            <SectionEyebrow>Features</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4vw,52px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 10 }}>
+              Everything you need
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ink-4)', maxWidth: 480, lineHeight: 1.6 }}>
+              Built for founders, executives, and professionals serious about LinkedIn growth.
+            </p>
           </FadeUp>
 
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5"
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-          >
+          <motion.div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}>
             {FEATURES.map(f => {
               const Icon = f.icon
               return (
                 <motion.div key={f.title} variants={staggerItem}>
-                  <Card className="h-full bg-white border-slate-200/60 cursor-default transition-all duration-300 hover:border-blue-200 hover:shadow-[0_8px_40px_rgba(11,69,139,0.08)] hover:-translate-y-1">
-                    <CardContent className="pt-7 pb-7">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style={{ background: f.bg }}>
-                        <Icon className="w-5 h-5" style={{ color: f.color }} strokeWidth={1.75} />
-                      </div>
-                      <h3 className="font-bold text-slate-900 mb-2 text-[17px] tracking-tight">{f.title}</h3>
-                      <p className="text-slate-500 leading-relaxed text-sm">{f.desc}</p>
-                    </CardContent>
-                  </Card>
+                  <div
+                    className="h-full transition-all duration-300 hover:-translate-y-1"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '28px', boxShadow: 'var(--sh-1)' }}
+                  >
+                    <div className="flex items-center justify-center mb-5"
+                      style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--pl-accent-soft)', border: '1px solid var(--pl-accent-2)' }}>
+                      <Icon className="w-5 h-5" style={{ color: 'var(--pl-accent)' }} strokeWidth={1.75} />
+                    </div>
+                    <h3 style={{ fontWeight: 700, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 8 }}>{f.title}</h3>
+                    <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65 }}>{f.desc}</p>
+                  </div>
                 </motion.div>
               )
             })}
@@ -496,161 +449,142 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════
-          TESTIMONIALS — white, cleaner layout
-          ══════════════════════════════════════════════════════ */}
-      <section className="py-20 md:py-28 px-4 md:px-8 bg-white border-t border-slate-100">
+      {/* ── Trust strip ── */}
+      <FadeUp>
+        <section className="py-14 px-4 md:px-8" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+          <div className="max-w-[1140px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[
+              { icon: '🔒', title: 'LinkedIn Official OAuth',  desc: 'Posting-only permissions. We never read your messages.' },
+              { icon: '🛡️', title: 'No data resold',          desc: 'Your writing sample never leaves our servers.' },
+              { icon: '💳', title: 'No surprise charges',     desc: 'Cancel anytime. You keep access until billing ends.' },
+              { icon: '⚡', title: 'Built in India, for all', desc: 'INR pricing, Razorpay + Dodo, 99.9% uptime SLA.' },
+            ].map(t => (
+              <div key={t.title}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>{t.icon}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 4 }}>{t.title}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>{t.desc}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </FadeUp>
+
+      {/* ── Testimonials ── */}
+      <section className="py-20 md:py-28 px-4 md:px-8" style={{ background: 'var(--bg)', borderTop: '1px solid var(--line)' }}>
         <div className="max-w-[1140px] mx-auto">
           <FadeUp className="mb-14">
-            <SectionLabel>What our users say</SectionLabel>
-            <h2 className="text-3xl md:text-[52px] font-black text-slate-900 tracking-[-0.035em] leading-[1.05] mb-3">Real results, real people</h2>
-            <p className="text-slate-500 text-base md:text-lg">Founders, consultants and professionals growing on LinkedIn every day</p>
+            <SectionEyebrow>Social proof</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4vw,52px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 10 }}>
+              Real results,{' '}
+              <span style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--pl-accent)' }}>real people</span>
+            </h2>
+            <p style={{ fontSize: 16, color: 'var(--ink-4)' }}>Founders, consultants and professionals growing on LinkedIn every day</p>
           </FadeUp>
 
-          {/* Featured rotating quote */}
-          <div className="relative mx-auto mb-14" style={{ height: '190px', maxWidth: '700px' }}>
-            <div className="testimonial-item absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-              <blockquote className="text-lg md:text-xl font-medium text-slate-700 leading-[1.65] mb-5">
-                &ldquo;PersonaLink completely transformed my LinkedIn presence. I went from 0 to 3,000 followers in 60 days without writing a single post myself.&rdquo;
-              </blockquote>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0B458B] to-[#083670] flex items-center justify-center text-white font-bold text-sm shrink-0">A</div>
-                <div className="text-left">
-                  <div className="font-semibold text-slate-900 text-sm">Arjun Mehta</div>
-                  <div className="text-slate-400 text-xs">Founder &amp; CEO, Fintech Startup</div>
-                </div>
-              </div>
-            </div>
-            <div className="testimonial-item-2 absolute inset-0 flex flex-col items-center justify-center text-center px-4" style={{ opacity: 0 }}>
-              <blockquote className="text-lg md:text-xl font-medium text-slate-700 leading-[1.65] mb-5">
-                &ldquo;I was spending 3 hours a week on LinkedIn content. Now PersonaLink handles everything and my engagement is up 400%. Game changer.&rdquo;
-              </blockquote>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] flex items-center justify-center text-white font-bold text-sm shrink-0">P</div>
-                <div className="text-left">
-                  <div className="font-semibold text-slate-900 text-sm">Priya Sharma</div>
-                  <div className="text-slate-400 text-xs">Independent Consultant, Mumbai</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Grid */}
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-          >
+          <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}>
             {[
-              { quote: 'Went from posting once a month to 3× a week — without spending more time. My inbound DMs from potential clients tripled.', name: 'Rahul Gupta',     title: 'VP Sales, B2B SaaS',                initial: 'R', from: '#059669', to: '#047857' },
-              { quote: 'As a career coach I need to stay visible. PersonaLink keeps me top-of-mind without taking up my whole morning.',           name: 'Neha Kapoor',    title: 'Career Coach, Delhi',               initial: 'N', from: '#7c3aed', to: '#6d28d9' },
-              { quote: 'Generated 3 inbound investor leads in my first month. My posts were finally reaching the right people.',                    name: 'James Osei',     title: 'Co-founder, Accra',                 initial: 'J', from: '#0891b2', to: '#0e7490' },
-              { quote: "I'd been \"planning to post more\" for 2 years. PersonaLink made it happen in week one. 40 new followers in the first 10 days.", name: 'Sofia Lindqvist', title: 'Marketing Director, Stockholm', initial: 'S', from: '#d97706', to: '#b45309' },
-              { quote: 'The voice matching is eerily accurate. My team could not tell which posts were AI-assisted. That is the real magic.',        name: 'Marcus Williams', title: 'Product Manager, New York',        initial: 'M', from: '#dc2626', to: '#b91c1c' },
-              { quote: 'From lurker to thought leader in 90 days. LinkedIn profile views up 6×. Completely worth it.',                             name: 'Layla Hassan',   title: 'Brand Consultant, Dubai',           initial: 'L', from: '#0B458B', to: '#083670' },
+              { quote: 'Went from posting once a month to 3× a week — without spending more time. My inbound DMs from potential clients tripled.', name: 'Rahul Gupta',     title: 'VP Sales, B2B SaaS',           initial: 'R' },
+              { quote: 'As a career coach I need to stay visible. PersonaLink keeps me top-of-mind without taking up my whole morning.',           name: 'Neha Kapoor',    title: 'Career Coach, Delhi',          initial: 'N' },
+              { quote: 'Generated 3 inbound investor leads in my first month. My posts were finally reaching the right people.',                   name: 'James Osei',     title: 'Co-founder, Accra',            initial: 'J' },
+              { quote: "I'd been \"planning to post more\" for 2 years. PersonaLink made it happen in week one.",                                  name: 'Sofia Lindqvist', title: 'Marketing Director, Stockholm',initial: 'S' },
+              { quote: 'The voice matching is eerily accurate. My team could not tell which posts were AI-assisted. That is the real magic.',       name: 'Marcus Williams', title: 'Product Manager, New York',   initial: 'M' },
+              { quote: 'From lurker to thought leader in 90 days. LinkedIn profile views up 6×. Completely worth it.',                            name: 'Layla Hassan',   title: 'Brand Consultant, Dubai',      initial: 'L' },
             ].map(t => (
               <motion.div key={t.name} variants={staggerItem}>
-                <Card className="h-full border-slate-200/60 transition-all duration-300 hover:shadow-[0_4px_24px_rgba(0,0,0,0.07)] hover:-translate-y-0.5">
-                  <CardContent className="pt-6 pb-6 flex flex-col h-full">
-                    <div className="flex gap-0.5 mb-4">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                      ))}
+                <div
+                  className="h-full flex flex-col transition-all duration-300 hover:-translate-y-0.5"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '24px', boxShadow: 'var(--sh-1)' }}
+                >
+                  <div className="flex gap-0.5 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <svg key={i} className="w-4 h-4 fill-current" style={{ color: '#f59e0b' }} viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                      </svg>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.7, flexGrow: 1, marginBottom: 20 }}>&ldquo;{t.quote}&rdquo;</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                      style={{ background: 'var(--pl-accent)' }}>{t.initial}</div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{t.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{t.title}</div>
                     </div>
-                    <p className="text-slate-600 text-[14px] leading-relaxed flex-1 mb-5">&ldquo;{t.quote}&rdquo;</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: `linear-gradient(135deg, ${t.from}, ${t.to})` }}>{t.initial}</div>
-                      <div>
-                        <div className="font-semibold text-slate-900 text-[13px]">{t.name}</div>
-                        <div className="text-slate-400 text-[11px]">{t.title}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════
-          PRICING — pale blue bg
-          ══════════════════════════════════════════════════════ */}
-      <section id="pricing" className="py-20 md:py-28 px-4 md:px-8 border-t border-slate-100" style={{ background: '#f7f9ff' }}>
+      {/* ── Pricing ── */}
+      <section id="pricing" className="py-20 md:py-28 px-4 md:px-8" style={{ background: 'var(--surface)', borderTop: '1px solid var(--line)' }}>
         <div className="max-w-[1140px] mx-auto">
           <FadeUp className="text-center mb-12 md:mb-16">
-            <SectionLabel>Pricing</SectionLabel>
-            <h2 className="text-3xl md:text-[52px] font-black text-slate-900 tracking-[-0.035em] leading-[1.05] mb-3">Simple, transparent pricing</h2>
-            <p className="text-slate-500 text-base md:text-lg mb-5">Slide to see what each plan includes</p>
-            <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-1.5 text-sm font-semibold text-emerald-700">
+            <SectionEyebrow>Pricing</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4vw,52px)', color: 'var(--ink)', letterSpacing: '-0.035em', lineHeight: 1.05, marginBottom: 10 }}>
+              Simple, transparent pricing
+            </h2>
+            <div className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 mt-2"
+              style={{ background: '#059669' + '18', border: '1px solid #059669' + '30', fontSize: 14, fontWeight: 600, color: '#059669' }}>
               <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
-              7-day free trial on all plans — no charge for 7 days
+              7-day free trial on all plans — no credit card required
             </div>
           </FadeUp>
 
-          <FadeUp delay={0.1}>
-            <PricingSlider />
-          </FadeUp>
-
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8 md:mt-12 items-stretch"
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-          >
+          <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-60px' }}>
             {PLANS.map(p => (
-              <motion.div
-                key={p.id}
-                variants={staggerItem}
-                className="rounded-2xl relative overflow-hidden h-full transition-all duration-300 hover:-translate-y-1"
+              <motion.div key={p.id} variants={staggerItem}
+                className="relative overflow-hidden h-full transition-all duration-300 hover:-translate-y-1"
                 style={{
-                  background: p.popular ? 'linear-gradient(145deg, #0B458B 0%, #083670 100%)' : 'white',
-                  border: p.popular ? 'none' : '1px solid #e2e8f0',
-                  padding: '32px 28px',
-                  boxShadow: p.popular ? '0 24px 64px rgba(10,102,194,0.3)' : '0 1px 8px rgba(0,0,0,0.04)',
-                }}
-              >
+                  background: p.popular ? 'var(--pl-accent)' : 'var(--surface)',
+                  border: p.popular ? 'none' : '1px solid var(--line)',
+                  borderRadius: 'var(--r-lg)',
+                  padding: '28px',
+                  boxShadow: p.popular ? 'var(--sh-blue)' : 'var(--sh-1)',
+                }}>
                 <div className="h-full flex flex-col">
                   {p.popular && (
-                    <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-full px-3.5 py-1 text-xs font-bold mb-4 w-fit">
+                    <div className="inline-block rounded-full px-3.5 py-1 mb-4 w-fit"
+                      style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
                       Most Popular
                     </div>
                   )}
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-semibold" style={{ color: p.popular ? 'rgba(255,255,255,0.7)' : '#64748b' }}>{p.label}</span>
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: p.popular ? 'rgba(255,255,255,0.15)' : '#ecfdf5', color: p.popular ? 'white' : '#059669' }}>7-day free trial</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: p.popular ? 'rgba(255,255,255,0.7)' : 'var(--ink-3)' }}>{p.label}</span>
+                    <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: p.popular ? 'rgba(255,255,255,0.15)' : '#ecfdf5', color: p.popular ? '#fff' : '#059669' }}>7-day trial</span>
                   </div>
-                  <div className="text-[42px] font-black mb-1 tracking-tight" style={{ color: p.popular ? 'white' : '#0f172a' }}>₹{p.price.toLocaleString('en-IN')}</div>
-                  <div className="text-[13px] mb-7" style={{ color: p.popular ? 'rgba(255,255,255,0.6)' : '#64748b' }}>/month · {p.posts} posts</div>
+                  <div style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-0.04em', color: p.popular ? '#fff' : 'var(--ink)', marginBottom: 4 }}>
+                    {currency.symbol}{(p.id === 'starter' ? currency.starter : p.id === 'standard' ? currency.standard : currency.pro).toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: 13, marginBottom: 24, color: p.popular ? 'rgba(255,255,255,0.6)' : 'var(--ink-4)' }}>/month · {p.posts} posts</div>
                   <div className="flex flex-col gap-3 flex-1">
                     {p.features.map(f => (
-                      <div key={f} className="flex items-center gap-2.5 text-sm" style={{ color: p.popular ? 'rgba(255,255,255,0.85)' : '#374151' }}>
-                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ background: p.popular ? 'rgba(255,255,255,0.18)' : '#e8f0fb' }}>
-                          <Check className="w-2.5 h-2.5" style={{ color: p.popular ? 'white' : '#0B458B' }} strokeWidth={2.5} />
+                      <div key={f} className="flex items-center gap-2.5" style={{ fontSize: 14, color: p.popular ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)' }}>
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+                          style={{ background: p.popular ? 'rgba(255,255,255,0.18)' : 'var(--pl-accent-soft)' }}>
+                          <Check className="w-2.5 h-2.5" style={{ color: p.popular ? '#fff' : 'var(--pl-accent)' }} strokeWidth={2.5} />
                         </div>
                         {f}
                       </div>
                     ))}
                   </div>
                   <div className="mt-8">
-                    <a
-                      href="/api/auth/linkedin"
-                      className="w-full py-3.5 rounded-xl font-bold text-[15px] transition-all duration-200 flex items-center justify-center gap-2 hover:opacity-90"
+                    <a href="/api/auth/linkedin"
+                      className="flex items-center justify-center gap-2 w-full transition-all hover:opacity-90"
                       style={{
-                        border: p.popular ? 'none' : '1.5px solid #0B458B',
-                        background: p.popular ? 'white' : 'transparent',
-                        color: '#0B458B',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      Start Free Trial
-                      <ArrowRight className="w-4 h-4" />
+                        padding: '14px 20px', borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 15,
+                        background: p.popular ? '#fff' : 'var(--pl-accent)',
+                        color: p.popular ? 'var(--pl-accent)' : '#fff',
+                        border: 'none',
+                      }}>
+                      Start Free Trial <ArrowRight className="w-4 h-4" />
                     </a>
-                    <div className="text-center text-[11px] mt-2.5" style={{ color: p.popular ? 'rgba(255,255,255,0.45)' : '#94a3b8' }}>
-                      Free for 7 days, then ₹{p.price.toLocaleString('en-IN')}/mo
+                    <div className="text-center mt-2.5" style={{ fontSize: 11, color: p.popular ? 'rgba(255,255,255,0.45)' : 'var(--ink-4)' }}>
+                      Free for 7 days, then {currency.symbol}{(p.id === 'starter' ? currency.starter : p.id === 'standard' ? currency.standard : currency.pro).toLocaleString()}/mo
                     </div>
                   </div>
                 </div>
@@ -660,23 +594,27 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════
-          FAQ — white
-          ══════════════════════════════════════════════════════ */}
-      <section id="faq" className="py-20 md:py-28 px-4 md:px-8 bg-white border-t border-slate-100">
+      {/* ── FAQ ── */}
+      <section id="faq" className="py-20 md:py-28 px-4 md:px-8" style={{ background: 'var(--bg-2)', borderTop: '1px solid var(--line)' }}>
         <div className="max-w-[760px] mx-auto">
           <FadeUp className="mb-12 md:mb-16">
-            <SectionLabel>FAQ</SectionLabel>
-            <h2 className="text-3xl md:text-[52px] font-black text-slate-900 tracking-[-0.035em]">Frequently asked</h2>
+            <SectionEyebrow>FAQ</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4vw,52px)', color: 'var(--ink)', letterSpacing: '-0.035em' }}>
+              Frequently asked
+            </h2>
           </FadeUp>
           <FadeUp delay={0.08}>
             <Accordion multiple={false} className="flex flex-col gap-2">
               {FAQS.map((faq, i) => (
-                <AccordionItem key={i} value={String(i)} className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden px-0">
-                  <AccordionTrigger className="px-6 py-5 font-semibold text-slate-900 text-[15px] hover:no-underline hover:text-[#0B458B] transition-colors">
+                <AccordionItem key={i} value={String(i)}
+                  className="overflow-hidden px-0"
+                  style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}>
+                  <AccordionTrigger
+                    className="px-6 py-5 hover:no-underline transition-colors"
+                    style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>
                     {faq.q}
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-5 text-slate-500 text-[15px] leading-[1.75]">
+                  <AccordionContent className="px-6 pb-5" style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.75 }}>
                     {faq.a}
                   </AccordionContent>
                 </AccordionItem>
@@ -686,53 +624,57 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════
-          CTA — dark navy matching hero
-          ══════════════════════════════════════════════════════ */}
+      {/* ── CTA ── */}
       <FadeUp>
         <section
-          className="relative py-20 md:py-32 px-4 md:px-8 text-center overflow-hidden border-t border-white/5"
-          style={{ background: 'linear-gradient(170deg, #070d1c 0%, #0b1628 65%, #0f1e3a 100%)' }}
+          className="relative py-20 md:py-32 px-4 md:px-8 text-center overflow-hidden"
+          style={{ background: 'linear-gradient(170deg, #070d1c 0%, #0b1628 65%, #0f1e3a 100%)', borderTop: '1px solid rgba(255,255,255,0.04)' }}
         >
-          {/* Glow */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div
-              className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[400px]"
-              style={{ background: 'radial-gradient(ellipse at center top, rgba(37,99,235,0.5) 0%, transparent 65%)' }}
-            />
-            <div
-              className="absolute inset-0 opacity-[0.02]"
-              style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '28px 28px' }}
-            />
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[400px]"
+              style={{ background: 'radial-gradient(ellipse at center top, color-mix(in srgb, var(--pl-accent) 50%, transparent) 0%, transparent 65%)' }} />
+            <div className="absolute inset-0 opacity-[0.02]"
+              style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '28px 28px' }} />
           </div>
 
           <div className="relative max-w-[640px] mx-auto">
-            <SectionLabel light>Get started today</SectionLabel>
-            <h2 className="text-[28px] md:text-[52px] font-black text-white mb-4 tracking-[-0.04em] leading-[1.0]">
-              Start growing on LinkedIn today
+            <SectionEyebrow light>Get started today</SectionEyebrow>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 800, fontSize: 'clamp(26px,5vw,52px)', color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.0, marginBottom: 16 }}>
+              Start growing on LinkedIn{' '}
+              <span style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400 }}>today</span>
             </h2>
-            <p className="mb-8 text-base md:text-lg" style={{ color: 'rgba(255,255,255,0.52)' }}>
+            <p className="mb-8" style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
               No credit card required. Set up in 10 minutes.
             </p>
-            <Button
-              render={<a href="/api/auth/linkedin" />}
-              className="h-14 px-9 text-base font-bold gap-2.5 bg-white hover:bg-blue-50 text-[#0B458B] shadow-2xl shadow-blue-500/25 transition-all duration-200 hover:scale-[1.03] w-full sm:w-auto"
-            >
-              <LinkedinIcon className="w-5 h-5 text-[#0B458B]" />
-              Connect LinkedIn — Free
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href="/api/auth/linkedin"
+                className="flex items-center justify-center gap-2.5 transition-all hover:opacity-90 hover:scale-[1.02]"
+                style={{ height: 56, padding: '0 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: '#fff', color: 'var(--pl-accent)', boxShadow: '0 24px 64px rgba(43,77,255,0.3)' }}>
+                <LinkedinIcon className="w-5 h-5" style={{ color: 'var(--pl-accent)' }} />
+                Connect LinkedIn — Free
+              </a>
+              <a href="/api/auth/google"
+                className="flex items-center justify-center gap-2.5 transition-all hover:opacity-80"
+                style={{ height: 56, padding: '0 32px', borderRadius: 12, fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}>
+                <Zap className="w-5 h-5" />
+                Continue with Google
+              </a>
+            </div>
           </div>
         </section>
       </FadeUp>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/[0.06] py-12 px-6 text-center" style={{ background: '#070d1c' }}>
-        <div className="flex items-center justify-center mb-4">
-          <div className="bg-white rounded-lg px-3 py-1.5 logo-always-white">
-            <Image src="/logo-text.png" alt="PersonaLink" width={154} height={24} className="h-6 w-auto" />
-          </div>
+      <footer className="py-12 px-6 text-center" style={{ background: '#070d1c', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="flex items-center justify-center mb-5">
+          <WordMark iconSize={28} />
         </div>
-        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.28)' }}>© 2025 PersonaLink. Your LinkedIn, on autopilot.</p>
+        <div className="flex items-center justify-center gap-6 mb-5">
+          {[['#features', 'Features'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            <a key={href} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>{label}</a>
+          ))}
+        </div>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.22)' }}>© 2025 PersonaLink. Your LinkedIn, on autopilot.</p>
       </footer>
     </div>
   )
@@ -745,27 +687,15 @@ const JSON_LD = {
   applicationCategory: 'BusinessApplication',
   description: 'AI LinkedIn manager that generates posts in your voice and publishes automatically',
   url: 'https://personalink.in',
-  offers: {
-    '@type': 'AggregateOffer',
-    lowPrice: '999',
-    highPrice: '4999',
-    priceCurrency: 'INR',
-  },
+  offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR' },
   operatingSystem: 'Web',
-  aggregateRating: {
-    '@type': 'AggregateRating',
-    ratingValue: '4.9',
-    reviewCount: '47',
-  },
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '47' },
 }
 
 export default function Home() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <Suspense><HomeContent /></Suspense>
     </>
   )

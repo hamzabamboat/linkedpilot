@@ -4,19 +4,18 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PostImage } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
 import {
   CloudUpload, CheckCircle2, X, Trash2, Loader2, Image as ImageIcon,
   ExternalLink, Lightbulb, RefreshCw, Lock, Zap, Camera,
 } from 'lucide-react'
 
-const MOOD_COLORS: Record<string, string> = {
-  professional: 'bg-blue-100 text-blue-700',
-  casual: 'bg-amber-100 text-amber-700',
-  celebratory: 'bg-emerald-100 text-emerald-700',
-  'behind-the-scenes': 'bg-purple-100 text-purple-700',
-  educational: 'bg-cyan-100 text-cyan-700',
-  inspirational: 'bg-rose-100 text-rose-700',
+const MOOD_CSS: Record<string, { bg: string; color: string }> = {
+  professional:        { bg: 'rgba(10,102,194,0.10)',  color: '#0A66C2' },
+  casual:              { bg: 'rgba(217,119,6,0.10)',   color: '#d97706' },
+  celebratory:         { bg: 'rgba(5,150,105,0.10)',   color: '#059669' },
+  'behind-the-scenes': { bg: 'rgba(124,58,237,0.10)', color: '#7c3aed' },
+  educational:         { bg: 'rgba(8,145,178,0.10)',   color: '#0891b2' },
+  inspirational:       { bg: 'rgba(220,38,38,0.10)',   color: '#dc2626' },
 }
 
 const IDEA_ICONS = ['📸', '🤝', '💼', '🏆', '🎯', '💡', '🌟', '📊', '🎤', '🏢']
@@ -33,6 +32,7 @@ function ImageCard({ image, onDelete }: { image: PostImage; onDelete: (id: strin
   const [deleting, setDeleting] = useState(false)
   const isAnalysed = !!image.analysed_at
   const topics = image.ai_topics || []
+  const mood = image.ai_mood ? (MOOD_CSS[image.ai_mood] || null) : null
 
   async function handleDelete() {
     setDeleting(true)
@@ -41,67 +41,79 @@ function ImageCard({ image, onDelete }: { image: PostImage; onDelete: (id: strin
   }
 
   return (
-    <div className="relative group rounded-xl overflow-hidden border border-slate-100 bg-white shadow-sm">
+    <div className="relative group overflow-hidden"
+      style={{ borderRadius: 'var(--r-lg)', border: '1px solid var(--line)', background: 'var(--surface)' }}>
       <div className="aspect-square relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image.public_url} alt={image.file_name || ''} className="w-full h-full object-cover" />
 
         {!isAnalysed && (
-          <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center gap-2">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+            style={{ background: 'rgba(0,0,0,0.6)' }}>
             <Loader2 className="w-5 h-5 text-white animate-spin" />
-            <span className="text-white text-[11px] font-semibold">Analysing...</span>
+            <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>Analysing…</span>
           </div>
         )}
 
         {isAnalysed && (
-          <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3"
+            style={{ background: 'rgba(0,0,0,0.72)' }}>
             <div className="flex justify-end gap-1.5">
               <Link
                 href={`/dashboard/generate?imageId=${image.id}`}
-                className="text-[11px] font-semibold bg-white text-slate-800 px-2 py-1 rounded-lg flex items-center gap-1 hover:bg-brand hover:text-white transition-colors"
+                className="flex items-center gap-1 transition-opacity hover:opacity-80"
+                style={{ fontSize: 11, fontWeight: 600, background: '#fff', color: 'var(--ink)', borderRadius: 'var(--r-sm)', padding: '4px 8px' }}
               >
                 Use in Post <ExternalLink className="w-3 h-3" />
               </Link>
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="p-1 rounded-lg bg-red-500/80 text-white hover:bg-red-600 transition-colors"
+                className="flex items-center justify-center transition-opacity hover:opacity-80"
+                style={{ padding: 6, borderRadius: 'var(--r-sm)', background: 'rgba(220,38,38,0.85)', color: '#fff' }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
             {image.ai_description && (
-              <p className="text-white text-[11px] leading-snug line-clamp-3">{image.ai_description}</p>
+              <p className="line-clamp-3" style={{ color: '#fff', fontSize: 11, lineHeight: 1.45 }}>{image.ai_description}</p>
             )}
           </div>
         )}
       </div>
 
       <div className="p-2.5">
-        {image.ai_mood && (
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${MOOD_COLORS[image.ai_mood] || 'bg-slate-100 text-slate-600'}`}>
+        {mood && image.ai_mood && (
+          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-full)', background: mood.bg, color: mood.color }}>
             {image.ai_mood}
           </span>
         )}
         {topics.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {topics.slice(0, 2).map(t => (
-              <span key={t} className="text-[10px] bg-slate-50 text-slate-500 border border-slate-100 rounded-full px-1.5 py-0.5">{t}</span>
+              <span key={t} style={{ fontSize: 10, background: 'var(--surface-2)', color: 'var(--ink-4)', border: '1px solid var(--line)', borderRadius: 'var(--r-full)', padding: '2px 6px' }}>{t}</span>
             ))}
             {topics.length > 2 && (
-              <span className="text-[10px] text-slate-400">+{topics.length - 2}</span>
+              <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>+{topics.length - 2}</span>
             )}
           </div>
         )}
       </div>
 
       {confirmDelete && (
-        <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center gap-2 p-3 rounded-xl">
-          <p className="text-[12px] font-semibold text-slate-700 text-center">Delete this photo?</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3"
+          style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)' }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', textAlign: 'center' }}>Delete this photo?</p>
           <div className="flex gap-2">
-            <Button size="sm" variant="destructive" onClick={handleDelete} disabled={deleting} className="h-7 text-[11px]">
+            <button onClick={handleDelete} disabled={deleting}
+              className="flex items-center justify-center gap-1 transition-opacity hover:opacity-80"
+              style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r-sm)', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 600, opacity: deleting ? 0.6 : 1 }}>
               {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Delete'}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)} className="h-7 text-[11px]">Cancel</Button>
+            </button>
+            <button onClick={() => setConfirmDelete(false)}
+              className="transition-opacity hover:opacity-70"
+              style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--line)', background: 'var(--surface-2)', color: 'var(--ink-2)', fontSize: 12, fontWeight: 500 }}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -117,7 +129,6 @@ function PhotoIdeasSection({ plan }: { plan: string }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
   const isPaid = plan === 'standard' || plan === 'pro'
 
   async function fetchIdeas() {
@@ -138,61 +149,64 @@ function PhotoIdeasSection({ plan }: { plan: string }) {
 
   if (!isPaid) {
     return (
-      <div className="mb-6 rounded-2xl border border-slate-100 bg-white shadow-sm p-5">
-        <div className="flex items-start gap-4">
-          <div className="relative shrink-0">
-            <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center">
-              <Camera className="w-5 h-5 text-slate-300" strokeWidth={1.5} />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shadow-sm">
-              <Lock className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
-            </div>
+      <div className="mb-6 flex items-start gap-4 p-5"
+        style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}>
+        <div className="relative shrink-0">
+          <div className="flex items-center justify-center"
+            style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
+            <Camera className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-slate-900 mb-0.5">AI Photo Ideas for This Month</div>
-            <p className="text-sm text-slate-500 mb-3">Get 5 specific, actionable photo prompts tailored to your industry and content pillars — so you always know what to shoot.</p>
-            <Button render={<Link href="/dashboard/settings?tab=plan" />} size="sm" className="gap-1.5 h-8 text-[13px]">
-              <Zap className="w-3.5 h-3.5" />
-              Upgrade to Standard
-            </Button>
+          <div className="absolute -bottom-1 -right-1 flex items-center justify-center"
+            style={{ width: 20, height: 20, borderRadius: '50%', background: '#f59e0b', boxShadow: 'var(--sh-1)' }}>
+            <Lock className="w-2.5 h-2.5 text-white" strokeWidth={2.5} />
           </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 4 }}>AI Photo Ideas for This Month</div>
+          <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 12 }}>
+            Get 5 specific, actionable photo prompts tailored to your industry and content pillars — so you always know what to shoot.
+          </p>
+          <Link href="/dashboard/settings?tab=plan"
+            className="flex items-center gap-1.5 w-fit transition-opacity hover:opacity-80"
+            style={{ padding: '7px 14px', borderRadius: 'var(--r-sm)', background: 'var(--pl-accent)', color: '#fff', fontSize: 13, fontWeight: 600 }}>
+            <Zap className="w-3.5 h-3.5" /> Upgrade to Standard
+          </Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-slate-100 bg-white shadow-sm p-5">
+    <div className="mb-6 p-5"
+      style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-brand-light flex items-center justify-center">
-            <Lightbulb className="w-4.5 h-4.5 text-brand" />
+          <div className="flex items-center justify-center"
+            style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--pl-accent-soft)' }}>
+            <Lightbulb className="w-4 h-4" style={{ color: 'var(--pl-accent)' }} strokeWidth={1.75} />
           </div>
           <div>
-            <div className="font-semibold text-slate-900 text-[15px]">Photo Ideas for This Month</div>
-            <div className="text-[12px] text-slate-400">AI-generated shots tailored to your industry &amp; content pillars</div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>Photo Ideas for This Month</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>// AI-generated shots tailored to your content pillars</div>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={fetchIdeas}
           disabled={loading}
-          className="gap-1.5 border-slate-200 shrink-0"
+          className="flex items-center gap-1.5 transition-opacity hover:opacity-70"
+          style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', color: 'var(--ink-2)', fontSize: 12, fontWeight: 500, padding: '6px 12px', opacity: loading ? 0.6 : 1 }}
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           {prompts.length > 0 ? 'Refresh' : 'Get Ideas'}
-        </Button>
+        </button>
       </div>
 
-      {error && (
-        <div className="text-sm text-red-500 mb-3">{error}</div>
-      )}
+      {error && <div style={{ fontSize: 13, color: '#ef4444', marginBottom: 12 }}>{error}</div>}
 
       {loading && prompts.length === 0 && (
         <div className="flex flex-col gap-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
+            <div key={i} className="skeleton h-14 rounded-xl" />
           ))}
         </div>
       )}
@@ -200,20 +214,23 @@ function PhotoIdeasSection({ plan }: { plan: string }) {
       {prompts.length > 0 && (
         <div className="flex flex-col gap-2">
           {prompts.map((prompt, i) => (
-            <div key={i} className="flex items-start gap-3 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+            <div key={i} className="flex items-start gap-3 px-4 py-3"
+              style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-md)' }}>
               <span className="text-lg shrink-0 mt-0.5">{IDEA_ICONS[i % IDEA_ICONS.length]}</span>
-              <p className="text-[13px] text-slate-700 leading-snug">{prompt}</p>
+              <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{prompt}</p>
             </div>
           ))}
-          <p className="text-[11px] text-slate-400 mt-1">Take these photos and upload them above — they&apos;ll be ready to use when generating posts.</p>
+          <p style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>
+            Take these photos and upload them above — they&apos;ll be ready to use when generating posts.
+          </p>
         </div>
       )}
 
       {!loading && prompts.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Camera className="w-10 h-10 text-slate-200 mb-3" strokeWidth={1.5} />
-          <div className="text-sm font-medium text-slate-600 mb-1">No ideas yet</div>
-          <div className="text-[13px] text-slate-400">Click &quot;Get Ideas&quot; to generate this month&apos;s photo brief</div>
+          <Camera className="w-10 h-10 mb-3" style={{ color: 'var(--line-2)' }} strokeWidth={1.5} />
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink-2)', marginBottom: 4 }}>No ideas yet</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Click &quot;Get Ideas&quot; to generate this month&apos;s photo brief</div>
         </div>
       )}
     </div>
@@ -243,7 +260,6 @@ export default function UploadPage() {
     loadImages()
   }, [loadImages])
 
-  // Poll for analysis completion on unanalysed images
   useEffect(() => {
     const unanalysed = images.filter(img => !img.analysed_at)
     if (!unanalysed.length) return
@@ -286,7 +302,6 @@ export default function UploadPage() {
       }
     }
 
-    // Clear done entries after delay
     setTimeout(() => setUploadQueue(q => q.filter(e => e.status !== 'done')), 3000)
   }
 
@@ -301,13 +316,16 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="p-4 md:p-7 max-w-[900px]">
+    <div className="p-4 md:p-8 max-w-[900px]">
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Photo Library</h1>
-        <p className="text-sm text-gray-500 leading-relaxed">Upload photos — AI analyses them for LinkedIn post hooks, mood, and topics so you can use them in your posts.</p>
+        <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
+          Image Library
+        </h1>
+        <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+          // upload photos — AI analyses them for hooks, mood, and topics
+        </p>
       </div>
 
-      {/* AI Photo Ideas section */}
       <PhotoIdeasSection plan={plan} />
 
       {/* Upload zone */}
@@ -316,13 +334,20 @@ export default function UploadPage() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all mb-4 ${
-          dragOver ? 'border-brand bg-brand-light/30' : 'border-slate-200 hover:border-brand/50 hover:bg-slate-50'
-        }`}
+        className="cursor-pointer transition-all mb-4 flex flex-col items-center justify-center p-10 text-center"
+        style={{
+          border: `2px dashed ${dragOver ? 'var(--pl-accent)' : 'var(--line-2)'}`,
+          borderRadius: 'var(--r-lg)',
+          background: dragOver ? 'var(--pl-accent-soft)' : 'var(--surface)',
+        }}
       >
-        <CloudUpload className="w-10 h-10 text-slate-300 mx-auto mb-3" strokeWidth={1.5} />
-        <div className="text-base font-semibold text-slate-700">Drag photos here or click to browse</div>
-        <div className="text-sm text-slate-400 mt-1">JPG, PNG, WebP, HEIC — up to 10 MB each, 4 at a time</div>
+        <CloudUpload className="w-10 h-10 mb-3" style={{ color: dragOver ? 'var(--pl-accent)' : 'var(--ink-4)' }} strokeWidth={1.5} />
+        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 4 }}>
+          Drag photos here or click to browse
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>
+          JPG, PNG, WebP, HEIC — up to 10 MB each, 4 at a time
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -337,48 +362,55 @@ export default function UploadPage() {
       {uploadQueue.length > 0 && (
         <div className="flex flex-col gap-2 mb-6">
           {uploadQueue.map((f, i) => (
-            <div key={i} className="flex items-center gap-3 bg-white border border-slate-100 rounded-xl px-4 py-3 shadow-sm">
+            <div key={i} className="flex items-center gap-3 px-4 py-3"
+              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-md)', background: 'var(--surface)' }}>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-slate-700 truncate">{f.name}</div>
+                <div className="truncate" style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-2)' }}>{f.name}</div>
                 {f.status === 'uploading' && (
-                  <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand rounded-full w-1/2 animate-pulse" />
+                  <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+                    <div className="h-full w-1/2 animate-pulse rounded-full" style={{ background: 'var(--pl-accent)' }} />
                   </div>
                 )}
                 {f.status === 'analysing' && (
                   <div className="flex items-center gap-1.5 mt-1">
-                    <Loader2 className="w-3 h-3 animate-spin text-violet-500" />
-                    <span className="text-[11px] text-violet-600 font-medium">Analysing with AI...</span>
+                    <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--pl-accent)' }} />
+                    <span style={{ fontSize: 11, color: 'var(--pl-accent)', fontWeight: 500 }}>Analysing with AI…</span>
                   </div>
                 )}
-                {f.status === 'error' && <div className="text-[11px] text-red-500 mt-0.5">{f.error}</div>}
+                {f.status === 'error' && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 2 }}>{f.error}</div>}
               </div>
-              {f.status === 'done' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-              {f.status === 'error' && <X className="w-4 h-4 text-red-500 shrink-0" />}
+              {f.status === 'done' && <CheckCircle2 className="w-4 h-4 shrink-0" style={{ color: '#10b981' }} />}
+              {f.status === 'error' && <X className="w-4 h-4 shrink-0" style={{ color: '#ef4444' }} />}
             </div>
           ))}
         </div>
       )}
 
-      {/* Photo library */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-[13px] font-semibold text-slate-700">Your Photos {images.length > 0 && `(${images.length})`}</div>
+      {/* Library header */}
+      <div className="flex items-center justify-between mb-3">
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+          // your photos {images.length > 0 && `(${images.length})`}
+        </div>
       </div>
 
       {loadingImages ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-square rounded-xl bg-slate-100 animate-pulse" />
+            <div key={i} className="aspect-square skeleton rounded-xl" />
           ))}
         </div>
       ) : images.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-slate-100 rounded-2xl">
-          <ImageIcon className="w-12 h-12 text-slate-200 mb-3" strokeWidth={1.5} />
-          <div className="font-semibold text-slate-700 mb-1">No photos yet</div>
-          <div className="text-sm text-slate-400 mb-4">Upload your first photo above</div>
-          <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="gap-2">
+        <div className="flex flex-col items-center justify-center py-20 text-center"
+          style={{ border: '2px dashed var(--line)', borderRadius: 'var(--r-lg)' }}>
+          <ImageIcon className="w-12 h-12 mb-3" style={{ color: 'var(--line-2)' }} strokeWidth={1.5} />
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink-2)', marginBottom: 4 }}>No photos yet</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>Upload your first photo above</div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', color: 'var(--ink-2)', fontSize: 13, fontWeight: 500, padding: '8px 16px' }}>
             <CloudUpload className="w-4 h-4" /> Upload Photos
-          </Button>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -392,10 +424,13 @@ export default function UploadPage() {
         </div>
       )}
 
-      <div className="mt-8 flex gap-3">
-        <Button onClick={() => router.push('/dashboard/generate')} variant="outline" className="gap-2">
+      <div className="mt-8">
+        <button
+          onClick={() => router.push('/dashboard/generate')}
+          className="flex items-center gap-2 transition-opacity hover:opacity-70"
+          style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', color: 'var(--ink-2)', fontSize: 13, fontWeight: 500, padding: '8px 16px' }}>
           Generate a post →
-        </Button>
+        </button>
       </div>
     </div>
   )

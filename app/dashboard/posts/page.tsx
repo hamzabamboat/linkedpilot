@@ -5,9 +5,7 @@ import type { Post } from '@/lib/supabase'
 import type { PostImage } from '@/lib/supabase'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -19,15 +17,26 @@ import {
 } from 'lucide-react'
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: '#94a3b8', pending_approval: '#f59e0b', approved: '#10b981',
-  scheduled: '#0A66C2', publishing: '#8b5cf6', published: '#059669', failed: '#ef4444', rejected: '#dc2626',
+  draft: 'var(--ink-3)',
+  pending_approval: '#f59e0b',
+  approved: '#10b981',
+  scheduled: 'var(--pl-accent)',
+  publishing: '#8b5cf6',
+  published: '#059669',
+  failed: '#ef4444',
+  rejected: '#dc2626',
 }
 const STATUS_LABEL: Record<string, string> = {
-  draft: 'Draft', pending_approval: 'Awaiting Approval', approved: 'Approved',
-  scheduled: 'Scheduled', publishing: 'Publishing', published: 'Published', failed: 'Failed', rejected: 'Rejected',
+  draft: 'Draft',
+  pending_approval: 'Awaiting Approval',
+  approved: 'Approved',
+  scheduled: 'Scheduled',
+  publishing: 'Publishing',
+  published: 'Published',
+  failed: 'Failed',
+  rejected: 'Rejected',
 }
 
-// Convert UTC ISO to local datetime-local value (YYYY-MM-DDTHH:MM)
 function utcToLocalInput(utcString: string): string {
   if (!utcString) return ''
   const date = new Date(utcString)
@@ -119,7 +128,6 @@ function PostsContent() {
     toast.success(`Generated ${data.count} posts for the next 30 days!`)
   }
 
-  // Sort by scheduled_at ascending (upcoming first), then by created_at for unscheduled
   const sortedPosts = [...posts].sort((a, b) => {
     const aTime = a.scheduled_at ? new Date(a.scheduled_at).getTime() : (a.published_at ? new Date(a.published_at).getTime() : new Date(a.created_at).getTime())
     const bTime = b.scheduled_at ? new Date(b.scheduled_at).getTime() : (b.published_at ? new Date(b.published_at).getTime() : new Date(b.created_at).getTime())
@@ -161,22 +169,38 @@ function PostsContent() {
       />
 
       <Dialog open={!!editingPost} onOpenChange={(open) => { if (!open) setEditingPost(null) }}>
-        <DialogContent className="max-w-lg mx-4 md:mx-auto w-[calc(100vw-2rem)] md:w-full">
-          <DialogHeader><DialogTitle className="text-base font-bold">Edit Post</DialogTitle></DialogHeader>
-          <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} className="h-48 resize-none text-[14px]" />
+        <DialogContent
+          className="max-w-lg mx-4 md:mx-auto w-[calc(100vw-2rem)] md:w-full"
+          style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)' }}
+        >
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>
+              Edit Post
+            </DialogTitle>
+          </DialogHeader>
 
-          {/* Photo attachment */}
+          <Textarea
+            value={editContent}
+            onChange={e => setEditContent(e.target.value)}
+            className="h-48 resize-none text-[14px]"
+            style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--ink)', borderRadius: 'var(--r-md)' }}
+          />
+
           <div>
-            <Label className="text-[13px] font-semibold mb-1.5 block">Photos <span className="font-normal text-slate-400">(optional)</span></Label>
+            <Label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', display: 'block', marginBottom: 6 }}>
+              Photos <span style={{ fontWeight: 400, color: 'var(--ink-4)' }}>(optional)</span>
+            </Label>
             {editImages.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
                 {editImages.map(img => (
-                  <div key={img.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 group">
+                  <div key={img.id} className="relative w-16 h-16 rounded-lg overflow-hidden group"
+                    style={{ border: '1px solid var(--line)' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.public_url} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => setEditImages(prev => prev.filter(i => i.id !== img.id))}
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                      className="absolute inset-0 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100"
+                      style={{ background: 'rgba(0,0,0,0.45)' }}
                     >
                       <X className="w-3.5 h-3.5 text-white" />
                     </button>
@@ -187,7 +211,12 @@ function PostsContent() {
             <button
               type="button"
               onClick={() => setImageSelectorOpen(true)}
-              className="flex items-center gap-2 text-[12px] font-medium text-slate-500 border border-slate-200 rounded-lg px-3 py-1.5 hover:border-brand/40 hover:text-brand transition-all"
+              className="flex items-center gap-2 transition-all"
+              style={{
+                fontSize: 12, fontWeight: 500, color: 'var(--ink-3)',
+                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                padding: '6px 12px',
+              }}
             >
               <ImageIcon className="w-3.5 h-3.5" />
               {editImages.length > 0 ? `${editImages.length} photo${editImages.length > 1 ? 's' : ''} selected` : 'Add photos from library'}
@@ -195,202 +224,359 @@ function PostsContent() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[13px] font-semibold">Reschedule <span className="text-slate-400 font-normal">(optional)</span></Label>
+            <Label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
+              Reschedule <span style={{ fontWeight: 400, color: 'var(--ink-4)' }}>(optional)</span>
+            </Label>
             <Input
               type="datetime-local"
               value={editSchedule}
               onChange={e => setEditSchedule(e.target.value)}
               min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+              style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--ink)', borderRadius: 'var(--r-sm)' }}
             />
-            <p className="text-[11px] text-slate-400">Time is in your local timezone</p>
+            <p style={{ fontSize: 11, color: 'var(--ink-4)' }}>Time is in your local timezone</p>
           </div>
+
           <div className="flex gap-3 pt-1">
-            <Button onClick={saveEdit} disabled={saving} className="flex-1">
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-            <Button variant="outline" onClick={() => setEditingPost(null)} className="border-slate-200">Cancel</Button>
+            <button
+              onClick={saveEdit}
+              disabled={saving}
+              className="flex-1 transition-opacity"
+              style={{
+                background: 'var(--pl-accent)', color: '#fff',
+                borderRadius: 'var(--r-sm)', padding: '9px 16px',
+                fontSize: 14, fontWeight: 600,
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button
+              onClick={() => setEditingPost(null)}
+              style={{
+                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-2)',
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-5 md:mb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">My Posts</h1>
-          <p className="text-gray-500 text-sm">{posts.length} posts total</p>
+          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
+            Posts
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+            // {posts.length} total
+          </p>
         </div>
         <div className="flex gap-2">
           {plan === 'pro' && (
-            <Button onClick={bulkGenerate} size="sm" className="gap-1.5 bg-pro hover:bg-pro/90 text-white shadow-sm">
+            <button
+              onClick={bulkGenerate}
+              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+              style={{
+                background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)',
+                border: '1px solid var(--pl-accent-2)', borderRadius: 'var(--r-sm)',
+                padding: '7px 14px', fontSize: 13, fontWeight: 600,
+              }}
+            >
               <Zap className="size-3.5" />
               <span className="hidden sm:inline">Bulk Fill 30 Days</span>
               <span className="sm:hidden">Bulk Fill</span>
-            </Button>
+            </button>
           )}
-          <Button render={<Link href="/dashboard/generate" />} size="sm" className="gap-1.5 shadow-sm">
+          <Link
+            href="/dashboard/generate"
+            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            style={{
+              background: 'var(--pl-accent)', color: '#fff',
+              borderRadius: 'var(--r-sm)', padding: '7px 14px',
+              fontSize: 13, fontWeight: 600,
+            }}
+          >
             <Plus className="size-3.5" />
             New Post
-          </Button>
+          </Link>
         </div>
       </div>
 
+      {/* View + filter controls */}
       <div className="flex gap-3 mb-6 items-center flex-wrap">
-        <div className="flex gap-0.5 bg-slate-100 rounded-xl p-1">
+        <div
+          className="flex gap-0.5 p-1"
+          style={{ background: 'var(--surface-2)', borderRadius: 'var(--r-md)' }}
+        >
           {(['list', 'calendar'] as ViewMode[]).map(v => (
-            <Button key={v} size="sm" variant={view === v ? 'secondary' : 'ghost'} onClick={() => setView(v)}
-              className={`h-7 text-xs px-3 gap-1.5 rounded-lg ${view === v ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-500 hover:text-slate-700'}`}>
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className="flex items-center gap-1.5 transition-all"
+              style={{
+                height: 28, padding: '0 12px', fontSize: 12, fontWeight: 500,
+                borderRadius: 'var(--r-sm)',
+                background: view === v ? 'var(--surface)' : 'transparent',
+                color: view === v ? 'var(--ink)' : 'var(--ink-3)',
+                boxShadow: view === v ? 'var(--sh-1)' : 'none',
+              }}
+            >
               {v === 'list' ? <><List className="size-3" />List</> : <><Calendar className="size-3" />Calendar</>}
-            </Button>
+            </button>
           ))}
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {(['all', 'scheduled', 'draft', 'published'] as FilterStatus[]).map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`h-7 text-xs rounded-full px-3.5 font-medium transition-all duration-150 border ${
-                filter === f
-                  ? 'bg-brand text-white border-brand shadow-sm'
-                  : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 bg-white'
-              }`}>
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className="transition-all"
+              style={{
+                height: 28, padding: '0 14px', fontSize: 12, fontWeight: 500,
+                borderRadius: 'var(--r-full)',
+                background: filter === f ? 'var(--pl-accent)' : 'var(--surface)',
+                color: filter === f ? '#fff' : 'var(--ink-3)',
+                border: filter === f ? '1px solid var(--pl-accent)' : '1px solid var(--line)',
+              }}
+            >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>
       </div>
 
+      {/* List view */}
       {view === 'list' && (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           {filtered.length === 0 ? (
-            <Card className="border-slate-100 shadow-sm">
-              <CardContent className="py-16 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-6 h-6 text-slate-300" strokeWidth={1.5} />
-                </div>
-                <div className="font-semibold text-slate-700 mb-1.5">No posts found</div>
-                <div className="text-[13px] text-slate-400 mb-5">
-                  {filter !== 'all' ? `No ${filter} posts yet.` : 'Generate your first post to get started.'}
-                </div>
-                <Button render={<Link href="/dashboard/generate" />} size="sm" className="gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Generate a Post
-                </Button>
-              </CardContent>
-            </Card>
+            <div
+              className="flex flex-col items-center justify-center py-16 text-center"
+              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}
+            >
+              <div
+                className="flex items-center justify-center mb-4"
+                style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}
+              >
+                <FileText className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+              </div>
+              <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>No posts found</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>
+                {filter !== 'all' ? `No ${filter} posts yet.` : 'Generate your first post to get started.'}
+              </div>
+              <Link
+                href="/dashboard/generate"
+                className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                style={{
+                  background: 'var(--pl-accent)', color: '#fff',
+                  borderRadius: 'var(--r-sm)', padding: '8px 16px',
+                  fontSize: 13, fontWeight: 600,
+                }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate a Post
+              </Link>
+            </div>
           ) : filtered.map(post => (
-            <Card key={post.id} className="border-slate-100 shadow-sm card-hover">
-              <CardContent className="pt-4 pb-4 flex gap-4 items-start">
+            <div
+              key={post.id}
+              style={{
+                background: 'var(--surface)', border: '1px solid var(--line)',
+                borderRadius: 'var(--r-lg)', padding: '14px 16px',
+                transition: 'border-color 0.15s',
+              }}
+              className="group"
+            >
+              <div className="flex gap-4 items-start">
                 <div className="flex-1 min-w-0">
-                  <div className="flex gap-2 items-center mb-2.5 flex-wrap">
-                    <Badge
-                      className="text-[11px] rounded-full font-semibold px-2.5"
-                      style={{ background: (STATUS_COLOR[post.status] || '#94a3b8') + '18', color: STATUS_COLOR[post.status] || '#94a3b8', border: 'none' }}
+                  <div className="flex gap-2 items-center mb-2 flex-wrap">
+                    {/* Status badge */}
+                    <span
+                      style={{
+                        fontSize: 11, fontWeight: 600, padding: '2px 8px',
+                        borderRadius: 'var(--r-full)',
+                        background: (STATUS_COLOR[post.status] || 'var(--ink-4)') + '18',
+                        color: STATUS_COLOR[post.status] || 'var(--ink-4)',
+                      }}
                     >
                       {STATUS_LABEL[post.status] || post.status}
-                    </Badge>
+                    </span>
                     {post.content_pillar && (
-                      <Badge variant="secondary" className="text-[11px] font-medium">{post.content_pillar}</Badge>
+                      <span
+                        style={{
+                          fontSize: 11, fontWeight: 500, padding: '2px 8px',
+                          borderRadius: 'var(--r-full)',
+                          background: 'var(--surface-2)', color: 'var(--ink-3)',
+                          border: '1px solid var(--line)',
+                        }}
+                      >
+                        {post.content_pillar}
+                      </span>
                     )}
                     {post.scheduled_at && (
-                      <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                      <span
+                        className="flex items-center gap-1"
+                        style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}
+                      >
                         <Calendar className="w-3 h-3" />
                         {new Date(post.scheduled_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-slate-600 leading-relaxed overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{post.content}</p>
+
+                  <p
+                    className="overflow-hidden"
+                    style={{
+                      fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    }}
+                  >
+                    {post.content}
+                  </p>
+
                   {post.image_urls && post.image_urls.length > 0 && (
                     <div className="flex gap-1.5 mt-2">
                       {post.image_urls.slice(0, 3).map((url, i) => (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img key={i} src={url} alt="" className="w-10 h-10 rounded-lg object-cover border border-slate-100" />
+                        <img key={i} src={url} alt="" className="w-10 h-10 rounded-lg object-cover"
+                          style={{ border: '1px solid var(--line)' }} />
                       ))}
                       {post.image_urls.length > 3 && (
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-[11px] text-slate-400 font-semibold">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ background: 'var(--surface-2)', fontSize: 11, color: 'var(--ink-4)', fontWeight: 600 }}
+                        >
                           +{post.image_urls.length - 3}
                         </div>
                       )}
                     </div>
                   )}
+
                   {post.status === 'published' && (post.reactions != null || post.impressions != null) && (
-                    <div className="flex gap-4 mt-2.5">
+                    <div className="flex gap-4 mt-2">
                       {post.impressions != null && (
-                        <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
                           <Eye className="w-3 h-3" /> {post.impressions.toLocaleString()}
                         </span>
                       )}
                       {post.reactions != null && (
-                        <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
                           <ThumbsUp className="w-3 h-3" /> {post.reactions}
                         </span>
                       )}
                       {post.comments != null && (
-                        <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
                           <MessageCircle className="w-3 h-3" /> {post.comments}
                         </span>
                       )}
                     </div>
                   )}
                 </div>
+
                 <div className="flex gap-2 flex-shrink-0">
-                  <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] min-w-[36px]"
-                    onClick={() => openEdit(post)}>
+                  <button
+                    onClick={() => openEdit(post)}
+                    className="flex items-center gap-1.5 transition-all hover:opacity-80"
+                    style={{
+                      fontSize: 12, fontWeight: 500, color: 'var(--ink-2)',
+                      border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                      padding: '5px 10px',
+                    }}
+                  >
                     <Pencil className="size-3.5" />
                     <span className="hidden sm:inline">Edit</span>
-                  </Button>
-                  <Button size="sm" variant="outline"
-                    className="border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 min-w-[36px]"
-                    onClick={() => deletePost(post.id)}>
+                  </button>
+                  <button
+                    onClick={() => deletePost(post.id)}
+                    className="flex items-center justify-center transition-all hover:opacity-80"
+                    style={{
+                      width: 30, height: 30,
+                      border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                      color: '#ef4444',
+                    }}
+                  >
                     <Trash2 className="size-3.5" />
-                  </Button>
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
+      {/* Calendar view */}
       {view === 'calendar' && (
         <div>
           {Object.keys(byDate).length === 0 ? (
-            <Card className="border-slate-100 shadow-sm">
-              <CardContent className="py-16 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-6 h-6 text-slate-300" strokeWidth={1.5} />
-                </div>
-                <div className="font-semibold text-slate-700 mb-1.5">No scheduled posts</div>
-                <div className="text-sm text-slate-400">Schedule posts to see them in your calendar.</div>
-              </CardContent>
-            </Card>
+            <div
+              className="flex flex-col items-center justify-center py-16 text-center"
+              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}
+            >
+              <div
+                className="flex items-center justify-center mb-4"
+                style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}
+              >
+                <Calendar className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+              </div>
+              <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>No scheduled posts</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Schedule posts to see them in your calendar.</div>
+            </div>
           ) : Object.entries(byDate).map(([month, monthPosts]) => (
             <div key={month} className="mb-7">
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{month}</div>
+              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                // {month}
+              </div>
               <div className="flex flex-col gap-2">
                 {monthPosts.map(post => (
-                  <Card key={post.id} className="border-slate-100 shadow-sm card-hover">
-                    <CardContent className="pt-3.5 pb-3.5 flex gap-3.5 items-center">
-                      <div className="text-center w-11 flex-shrink-0">
-                        <div className="text-lg font-extrabold text-slate-900 leading-none tracking-tight">
-                          {new Date(post.scheduled_at || post.published_at!).getDate()}
-                        </div>
-                        <div className="text-[10px] text-slate-400 uppercase font-medium">
-                          {new Date(post.scheduled_at || post.published_at!).toLocaleDateString(undefined, { weekday: 'short' })}
-                        </div>
+                  <div
+                    key={post.id}
+                    className="flex gap-3.5 items-center"
+                    style={{
+                      background: 'var(--surface)', border: '1px solid var(--line)',
+                      borderRadius: 'var(--r-lg)', padding: '12px 14px',
+                    }}
+                  >
+                    <div className="text-center flex-shrink-0" style={{ width: 40 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-0.03em' }}>
+                        {new Date(post.scheduled_at || post.published_at!).getDate()}
                       </div>
-                      <div className="w-px h-8 bg-slate-100 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-600 leading-relaxed overflow-hidden mb-1" style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{post.content}</p>
-                        <div className="flex gap-2 items-center">
-                          <span className="text-[11px] font-semibold" style={{ color: STATUS_COLOR[post.status] }}>{STATUS_LABEL[post.status]}</span>
-                          <span className="text-[11px] text-slate-300">·</span>
-                          <span className="text-[11px] text-slate-400">
-                            {new Date(post.scheduled_at || post.published_at!).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', fontWeight: 500, marginTop: 2 }}>
+                        {new Date(post.scheduled_at || post.published_at!).toLocaleDateString(undefined, { weekday: 'short' })}
                       </div>
-                      <Button size="sm" variant="outline" className="gap-1.5 border-slate-200 text-[13px] shrink-0"
-                        onClick={() => openEdit(post)}>
-                        <Pencil className="size-3.5" /> Edit
-                      </Button>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    <div style={{ width: 1, height: 32, background: 'var(--line)', flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="overflow-hidden mb-1"
+                        style={{
+                          fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.45,
+                          display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {post.content}
+                      </p>
+                      <div className="flex gap-2 items-center">
+                        <span style={{ fontSize: 11, fontWeight: 600, color: STATUS_COLOR[post.status] }}>{STATUS_LABEL[post.status]}</span>
+                        <span style={{ color: 'var(--line-2)', fontSize: 11 }}>·</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+                          {new Date(post.scheduled_at || post.published_at!).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => openEdit(post)}
+                      className="flex items-center gap-1.5 flex-shrink-0 transition-all hover:opacity-80"
+                      style={{
+                        fontSize: 12, fontWeight: 500, color: 'var(--ink-2)',
+                        border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
+                        padding: '5px 10px',
+                      }}
+                    >
+                      <Pencil className="size-3.5" /> Edit
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

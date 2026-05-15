@@ -11,7 +11,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        sans:    ['var(--f-sans)', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['var(--f-display)'],
+        mono:    ['var(--f-mono)'],
       },
       colors: {
         // shadcn CSS variable colors
@@ -67,6 +69,22 @@ const config: Config = {
           DEFAULT: "#7c3aed",
           light: "#f5f3ff",
         },
+        // PL design token colors
+        ink:          'var(--ink)',
+        'ink-2':      'var(--ink-2)',
+        'ink-3':      'var(--ink-3)',
+        'ink-4':      'var(--ink-4)',
+        surface:      'var(--surface)',
+        'surface-2':  'var(--surface-2)',
+        'surface-3':  'var(--surface-3)',
+        bg:           'var(--bg)',
+        'bg-2':       'var(--bg-2)',
+        line:         'var(--line)',
+        'line-2':     'var(--line-2)',
+        'pl-accent':       'var(--pl-accent)',
+        'pl-accent-2':     'var(--pl-accent-2)',
+        'pl-accent-soft':  'var(--pl-accent-soft)',
+        'serif-ink':  'var(--serif-ink)',
       },
       borderRadius: {
         lg: "var(--radius)",

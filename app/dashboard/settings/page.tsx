@@ -235,22 +235,35 @@ function SettingsContent() {
   }
 
   function SectionLabel({ children, danger }: { children: React.ReactNode; danger?: boolean }) {
-    return <div className={`text-[11px] font-bold uppercase tracking-wider mb-4 ${danger ? 'text-red-400' : 'text-slate-400'}`}>{children}</div>
+    return (
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14, fontFamily: 'var(--f-mono)', color: danger ? '#ef4444' : 'var(--ink-4)' }}>
+        // {children}
+      </div>
+    )
   }
 
   function SaveButton({ label = 'Save Changes' }: { label?: string }) {
     return (
-      <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-fit gap-1.5 shadow-sm mt-2">
-        {saving ? <><Loader2 className="size-4 animate-spin" /> Saving...</> : <><Check className="size-4" /> {label}</>}
-      </Button>
+      <button
+        onClick={saveProfile}
+        disabled={saving}
+        className="flex items-center gap-1.5 transition-opacity mt-2"
+        style={{
+          padding: '8px 18px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600,
+          background: 'var(--pl-accent)', color: '#fff',
+          opacity: saving ? 0.6 : 1,
+        }}
+      >
+        {saving ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Check className="size-4" /> {label}</>}
+      </button>
     )
   }
 
   return (
     <div className="p-4 md:p-7 max-w-[700px]">
       <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 tracking-tight">Settings</h1>
-        <p className="text-sm text-gray-500">Manage your account and preferences</p>
+        <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>Settings</h1>
+        <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>// manage your account and preferences</p>
       </div>
 
       {/* ── Profile ── */}
