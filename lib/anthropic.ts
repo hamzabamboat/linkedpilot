@@ -22,13 +22,30 @@ type GeneratePostOptions = {
   additionalContext?: string
   trendingContext?: string
   recentTopics?: string[]
+  recentTopicsByPillar?: Record<string, string[]>
+  userMemories?: Array<{ content: string; memory_type: string; created_at: string; occurred_at?: string }>
   imageContext?: string
 }
 
-function pickContentPillar(profile: UserProfile): string {
+export type ExtractedMemory = {
+  memory_type: 'life_event' | 'achievement' | 'story' | 'lesson' | 'preference'
+  content: string
+  occurred_at: string | null
+}
+
+export type ExtractedTopics = {
+  topics: string[]
+}
+
+function pickContentPillar(profile: UserProfile, recentTopicsByPillar?: Record<string, string[]>): string {
   const pillars = profile.content_pillars || profile.topics || ['Professional Insights']
-  // Rotate evenly — pick random for now; in production track last used
-  return pillars[Math.floor(Math.random() * pillars.length)]
+  if (!recentTopicsByPillar || Object.keys(recentTopicsByPillar).length === 0) {
+    return pillars[Math.floor(Math.random() * pillars.length)]
+  }
+  // Pick the pillar used least recently
+  const pillarUseCounts = pillars.map(p => ({ pillar: p, count: (recentTopicsByPillar[p] || []).length }))
+  pillarUseCounts.sort((a, b) => a.count - b.count)
+  return pillarUseCounts[0].pillar
 }
 
 function buildVoiceContext(profile: UserProfile): string {
@@ -55,9 +72,9 @@ function buildVoiceContext(profile: UserProfile): string {
 }
 
 export async function generateLinkedInPosts(options: GeneratePostOptions): Promise<string[]> {
-  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, imageContext } = options
+  const { profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, recentTopicsByPillar, userMemories, imageContext } = options
 
-  const pillar = pickContentPillar(profile)
+  const pillar = pickContentPillar(profile, recentTopicsByPillar)
   const voiceContext = buildVoiceContext(profile)
 
   const sourceContext = storyText
@@ -72,7 +89,14 @@ export async function generateLinkedInPosts(options: GeneratePostOptions): Promi
     ? `\nDo NOT repeat or closely overlap with these recent topics: ${recentTopics.join(', ')}`
     : ''
 
-  const systemPrompt = `You are an expert LinkedIn ghostwriter who writes posts that sound 100% human, get high engagement, and match the author's exact voice.
+  const memoriesContext = userMemories?.length
+    ? `\n\nThings this person has recently experienced (NOT yet written about on LinkedIn — consider weaving one naturally into the post or following up on it if relevant):\n${userMemories.map(m => {
+        const when = m.occurred_at ? ` (${new Date(m.occurred_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})` : ''
+        return `- [${m.memory_type}]${when}: ${m.content}`
+      }).join('\n')}`
+    : ''
+
+  const systemPrompt = `You are an expert LinkedIn ghostwriter who writes posts that sound 100% human, get high engagement, and match the author's exact voice. You have deep context about this person's recent life and experiences — use it to make posts feel authentic and timely, not generic.
 
 Author profile:
 - Name: ${profile.name || profile.job_title || 'a professional'}${profile.company ? ` at ${profile.company}` : ''}
@@ -80,7 +104,7 @@ Author profile:
 - Industry: ${profile.industry || 'business'}
 - Content pillar for this post: ${pillar}
 
-${voiceContext}
+${voiceContext}${memoriesContext}
 
 LinkedIn post rules:
 1. First line must be a scroll-stopper hook — no "I" to open, no generic starters
@@ -337,6 +361,65 @@ Return only valid JSON, no other text.`,
     }
   } catch {
     return { description: '', mood: 'professional', topics: [], text_detected: '', post_hooks: [], content_pillars: [] }
+  }
+}
+
+export async function extractMemoriesFromContent(
+  text: string,
+  source: 'voice_note' | 'post',
+): Promise<ExtractedMemory[]> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 800,
+    messages: [{
+      role: 'user',
+      content: `Extract 0–3 memorable facts about this person's life from the text below. Only extract concrete, specific things: achievements, life events, lessons learned, personal stories, or strong preferences. Skip generic statements.
+
+Text (${source}):
+"${text.slice(0, 1500)}"
+
+Respond ONLY with a valid JSON array (empty array if nothing notable):
+[
+  {
+    "memory_type": "life_event" | "achievement" | "story" | "lesson" | "preference",
+    "content": "concise 1-sentence description of the memory",
+    "occurred_at": "ISO date string if mentioned, otherwise null"
+  }
+]`,
+    }],
+  })
+
+  try {
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '[]'
+    const stripped = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim()
+    const match = stripped.match(/\[[\s\S]*\]/)
+    return match ? JSON.parse(match[0]) : []
+  } catch {
+    return []
+  }
+}
+
+export async function extractTopicsFromPost(content: string): Promise<string[]> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 200,
+    messages: [{
+      role: 'user',
+      content: `Extract 3–5 topic tags from this LinkedIn post. Use short, lowercase noun phrases (e.g. "product launch", "team culture", "fundraising").
+
+Post:
+"${content.slice(0, 800)}"
+
+Respond ONLY with a JSON array of strings. Example: ["leadership", "startup growth", "hiring"]`,
+    }],
+  })
+
+  try {
+    const raw = msg.content[0].type === 'text' ? msg.content[0].text : '[]'
+    const match = raw.match(/\[[\s\S]*\]/)
+    return match ? JSON.parse(match[0]) : []
+  } catch {
+    return []
   }
 }
 

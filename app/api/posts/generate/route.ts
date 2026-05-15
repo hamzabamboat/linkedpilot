@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const maxDuration = 60
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
-import { generateLinkedInPosts } from '@/lib/anthropic'
+import { generateLinkedInPosts, extractMemoriesFromContent, extractTopicsFromPost } from '@/lib/anthropic'
 import { getTrendsForProfile } from '@/lib/trends'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
@@ -103,14 +103,41 @@ export async function POST(request: NextRequest) {
     storyText = story?.raw_text ?? undefined
   }
 
-  // Get recent topics to avoid repetition
-  const { data: recentPosts } = await supabaseAdmin
+  // Get recent posts for deduplication — last 30 for richer topic awareness
+  const { data: recentPostRows } = await supabaseAdmin
     .from('posts')
-    .select('generation_prompt')
+    .select('generation_prompt, topics_extracted, content_pillar')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    .limit(30)
+
+  const recentTopics = (recentPostRows || [])
+    .flatMap(p => {
+      const fromPrompt = p.generation_prompt ? [p.generation_prompt] : []
+      const fromTags = Array.isArray(p.topics_extracted) ? p.topics_extracted : []
+      return [...fromPrompt, ...fromTags]
+    })
+    .filter(Boolean) as string[]
+
+  // Group topics by content pillar so the AI can rotate underused pillars
+  const recentTopicsByPillar: Record<string, string[]> = {}
+  for (const p of (recentPostRows || [])) {
+    if (p.content_pillar) {
+      if (!recentTopicsByPillar[p.content_pillar]) recentTopicsByPillar[p.content_pillar] = []
+      if (p.generation_prompt) recentTopicsByPillar[p.content_pillar].push(p.generation_prompt)
+    }
+  }
+
+  // Fetch recent unposted memories (last 21 days) for lifestyle recall
+  const threeWeeksAgo = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: userMemories } = await supabaseAdmin
+    .from('user_memories')
+    .select('content, memory_type, created_at, occurred_at')
+    .eq('user_id', user.id)
+    .eq('posted_about', false)
+    .gte('created_at', threeWeeksAgo)
+    .order('created_at', { ascending: false })
     .limit(10)
-  const recentTopics = (recentPosts || []).map(p => p.generation_prompt).filter(Boolean) as string[]
 
   // Fetch trending context
   let trendingContext: string | undefined
@@ -144,7 +171,10 @@ export async function POST(request: NextRequest) {
   }
 
   const posts = await generateLinkedInPosts({
-    profile, topic, transcript, storyText, additionalContext, trendingContext, recentTopics, imageContext,
+    profile, topic, transcript, storyText, additionalContext, trendingContext,
+    recentTopics, recentTopicsByPillar,
+    userMemories: userMemories || undefined,
+    imageContext,
   })
 
   const validPosts = posts.filter(p => p && p.trim().length >= 50)
@@ -185,7 +215,6 @@ export async function POST(request: NextRequest) {
     storyBankId ? incrementUsage(user.id, 'story_conversions') : Promise.resolve(),
     incrementRateLimit(user.id, 'claude_calls'),
     trackAndCheckSpend('claude_sonnet', user.id),
-    // Keep posts_used_this_month in sync for the existing dashboard counter
     supabaseAdmin
       .from('user_profiles')
       .update({ posts_used_this_month: postsUsed + 1 })
@@ -196,7 +225,38 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin.from('story_bank').update({ status: 'converted' }).eq('id', storyBankId)
   }
 
-  return NextResponse.json({ posts: insertedPosts.filter(Boolean) })
+  const savedPosts = insertedPosts.filter(Boolean) as Array<{ id: string; content: string }>
+
+  // Fire-and-forget: extract topics + memories from saved posts and source content
+  Promise.allSettled([
+    // Tag each saved post with topic keywords
+    ...savedPosts.map(async (post) => {
+      const topics = await extractTopicsFromPost(post.content)
+      if (topics.length) {
+        await supabaseAdmin.from('posts').update({ topics_extracted: topics }).eq('id', post.id)
+      }
+    }),
+    // Extract memories from voice note transcript (first post's content as proxy)
+    (async () => {
+      const sourceText = transcript || storyText
+      if (!sourceText) return
+      const memories = await extractMemoriesFromContent(sourceText, transcript ? 'voice_note' : 'post')
+      if (!memories.length) return
+      await supabaseAdmin.from('user_memories').insert(
+        memories.map(m => ({
+          user_id: user.id,
+          memory_type: m.memory_type,
+          content: m.content,
+          occurred_at: m.occurred_at,
+          source: transcript ? 'voice_note' : 'post',
+          source_id: voiceNoteId || storyBankId || null,
+          posted_about: false,
+        }))
+      )
+    })(),
+  ]).catch(() => { /* non-fatal */ })
+
+  return NextResponse.json({ posts: savedPosts })
   } catch (error) {
     console.error('[posts/generate]', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })

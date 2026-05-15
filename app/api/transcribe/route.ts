@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getUserFromRequest } from '@/lib/auth'
+import { extractMemoriesFromContent } from '@/lib/anthropic'
 import { checkLimit, incrementUsage, logViolation } from '@/lib/usage-limits'
 import { checkCircuitBreaker, trackAndCheckSpend } from '@/lib/circuit-breaker'
 import { checkRateLimit, incrementRateLimit } from '@/lib/rate-limiter'
@@ -79,6 +80,23 @@ export async function POST(request: NextRequest) {
         incrementRateLimit(user.id, 'whisper_calls'),
         trackAndCheckSpend('openai_whisper', user.id, { minutes: estimatedMinutes }),
       ])
+
+      // Fire-and-forget: extract life events and stories from the voice note
+      extractMemoriesFromContent(transcription.text, 'voice_note').then(async (memories) => {
+        if (!memories.length) return
+        await supabaseAdmin.from('user_memories').insert(
+          memories.map(m => ({
+            user_id: user.id,
+            memory_type: m.memory_type,
+            content: m.content,
+            occurred_at: m.occurred_at,
+            source: 'voice_note',
+            source_id: voiceNote.id,
+            posted_about: false,
+          }))
+        )
+      }).catch(() => { /* non-fatal */ })
+
       return NextResponse.json({ voiceNoteId: voiceNote.id, transcript: transcription.text })
     } catch (err) {
       await supabaseAdmin.from('voice_notes').update({ status: 'failed' }).eq('id', voiceNote.id)
