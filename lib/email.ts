@@ -6,7 +6,7 @@ const resend = () => {
   return _resend
 }
 
-const FROM_EMAIL = 'PersonaLink <noreply@personalink.ai>'
+const FROM_EMAIL = 'PersonaLink <noreply@personalink.in>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function sendApprovalEmail({
