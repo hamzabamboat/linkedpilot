@@ -134,14 +134,15 @@ export default function AnalyticsPage() {
       } else if (data.synced === 0 && data.message) {
         setSyncMsg(data.message)
       } else {
-        setSyncMsg(`Synced ${data.synced} of ${data.total} posts`)
+        const base = `Synced ${data.synced} of ${data.total} posts`
+        setSyncMsg(data.warning ? `${base}. ${data.warning}` : base)
         await fetchData(userId)
       }
     } catch {
       setSyncMsg('Sync failed. Please try again.')
     } finally {
       setSyncing(false)
-      setTimeout(() => setSyncMsg(null), 5000)
+      setTimeout(() => setSyncMsg(null), 8000)
     }
   }
 
@@ -215,7 +216,7 @@ export default function AnalyticsPage() {
 
   const statValues = {
     reactions: avgEngagement,
-    impressions: totalImpressions.toLocaleString('en-IN'),
+    impressions: totalImpressions > 0 ? totalImpressions.toLocaleString('en-IN') : '–',
     posts: posts.length,
     score: scores[scores.length - 1]?.score ?? '–',
   }

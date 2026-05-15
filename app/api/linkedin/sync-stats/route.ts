@@ -33,12 +33,15 @@ export async function POST(request: NextRequest) {
 
   let synced = 0
   let failed = 0
+  let scopeError = false
 
   for (const post of posts) {
     try {
       const encodedUrn = encodeURIComponent(post.linkedin_post_id!)
-      const res = await fetch(
-        `https://api.linkedin.com/v2/socialActions/${encodedUrn}`,
+
+      // Use the Share Statistics API for impressions, likes, comments, clicks
+      const statsRes = await fetch(
+        `https://api.linkedin.com/v2/shareStatistics?q=shares&shares[0]=${encodedUrn}`,
         {
           headers: {
             Authorization: `Bearer ${userData.linkedin_access_token}`,
@@ -47,25 +50,75 @@ export async function POST(request: NextRequest) {
         }
       )
 
-      if (!res.ok) {
+      if (statsRes.status === 403) {
+        scopeError = true
+        // Fall back to socialActions endpoint for reactions only
+        const actionsRes = await fetch(
+          `https://api.linkedin.com/v2/socialActions/${encodedUrn}`,
+          {
+            headers: {
+              Authorization: `Bearer ${userData.linkedin_access_token}`,
+              'X-Restli-Protocol-Version': '2.0.0',
+            },
+          }
+        )
+
+        if (!actionsRes.ok) {
+          failed++
+          continue
+        }
+
+        const actionsData = await actionsRes.json()
+        const reactions = actionsData.likesSummary?.totalLikes ?? null
+        const comments = actionsData.commentsSummary?.totalFirstLevelComments ?? null
+
+        if (reactions !== null) {
+          await supabaseAdmin
+            .from('posts')
+            .update({ reactions, ...(comments !== null && { comments }) })
+            .eq('id', post.id)
+          synced++
+        }
+        continue
+      }
+
+      if (!statsRes.ok) {
         failed++
         continue
       }
 
-      const data = await res.json()
-      const reactions = data.likesSummary?.totalLikes ?? null
+      const statsData = await statsRes.json()
+      const stat = statsData.elements?.[0]?.shareStatistics
 
-      if (reactions !== null) {
-        await supabaseAdmin
-          .from('posts')
-          .update({ reactions })
-          .eq('id', post.id)
-        synced++
+      if (!stat) {
+        failed++
+        continue
       }
+
+      const reactions = stat.likeCount ?? null
+      const impressions = stat.impressionCount ?? null
+      const comments = stat.commentCount ?? null
+
+      await supabaseAdmin
+        .from('posts')
+        .update({
+          ...(reactions !== null && { reactions }),
+          ...(impressions !== null && { impressions }),
+          ...(comments !== null && { comments }),
+        })
+        .eq('id', post.id)
+      synced++
     } catch {
       failed++
     }
   }
 
-  return NextResponse.json({ synced, failed, total: posts.length })
+  return NextResponse.json({
+    synced,
+    failed,
+    total: posts.length,
+    ...(scopeError && {
+      warning: 'Impression data unavailable — reconnect LinkedIn to grant full analytics access.',
+    }),
+  })
 }
