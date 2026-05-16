@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
     .from('story_bank')
     .select('id, raw_text')
     .eq('user_id', user.id)
-    .eq('status', 'raw')
+    .not('status', 'in', '("converted","dismissed")')
     .order('created_at', { ascending: true })
     .limit(postsToGenerate)
 

@@ -523,6 +523,7 @@ function GenerateContent() {
       const posts = data.posts as Array<{ id: string; content: string }> | undefined
       if (!posts?.length) { setError('No posts generated. Please try again.'); return }
       setGeneratedPosts(posts)
+      if (initStoryId) selectPost(posts[0])
     } catch { setError('Generation failed — check your connection.') }
     finally { clearInterval(interval); setLoading(false) }
   }
