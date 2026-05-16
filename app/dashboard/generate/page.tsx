@@ -431,11 +431,12 @@ function GenerateContent() {
   }, [])
 
   useEffect(() => {
-    if (initStoryId && selectedStory?.id === initStoryId && !autoGenerateFiredRef.current) {
+    if (initStoryId && !autoGenerateFiredRef.current) {
       autoGenerateFiredRef.current = true
-      handleGenerate()
+      handleGenerate(initStoryId)
     }
-  }, [selectedStory])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function loadStories() {
     const meRes = await fetch('/api/me')
@@ -502,7 +503,7 @@ function GenerateContent() {
     setNewStory(''); loadStories()
   }
 
-  async function handleGenerate() {
+  async function handleGenerate(overrideStoryId?: string) {
     setLoading(true); setError(''); setGeneratedPosts([]); setSelectedPost(null); setImageSuggestions([])
     loadingMsgIdx.current = 0; setLoadingMsg(LOADING_MESSAGES[0])
     const interval = setInterval(() => {
@@ -514,7 +515,10 @@ function GenerateContent() {
       const body: Record<string, unknown> = { additionalContext: tonePrefix + additionalContext }
       if (tab === 'prompt') body.topic = topic
       if (tab === 'voice')  body.voiceNoteId = voiceNoteId
-      if (tab === 'story' && selectedStory) body.storyBankId = selectedStory.id
+      if (tab === 'story') {
+        const storyId = overrideStoryId || selectedStory?.id
+        if (storyId) body.storyBankId = storyId
+      }
       if (selectedImages.length > 0) body.imageIds = selectedImages.map(img => img.id)
       const res = await fetch('/api/posts/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       let data: Record<string, unknown>
@@ -523,7 +527,7 @@ function GenerateContent() {
       const posts = data.posts as Array<{ id: string; content: string }> | undefined
       if (!posts?.length) { setError('No posts generated. Please try again.'); return }
       setGeneratedPosts(posts)
-      if (initStoryId) selectPost(posts[0])
+      if (overrideStoryId || initStoryId) selectPost(posts[0])
     } catch { setError('Generation failed — check your connection.') }
     finally { clearInterval(interval); setLoading(false) }
   }
