@@ -257,56 +257,48 @@ function HomeContent() {
       {/* ── Hero ── */}
       <section
         className="relative overflow-hidden"
-        style={{ background: 'linear-gradient(170deg, #070d1c 0%, #0b1628 65%, #0f1e3a 100%)', minHeight: '92vh' }}
+        style={{ minHeight: '92vh' }}
       >
-        {/* Radial glow behind hero */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[900px] h-[700px]"
-            style={{ background: 'radial-gradient(ellipse at center top, color-mix(in srgb, var(--pl-accent) 55%, transparent) 0%, transparent 70%)' }} />
-          <div className="absolute inset-0 opacity-[0.025]"
-            style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.9) 1px, transparent 0)', backgroundSize: '28px 28px' }} />
-        </div>
-
         <div className="max-w-[1140px] mx-auto px-4 md:px-8 pt-28 md:pt-36 pb-36 md:pb-44 grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center relative">
           <motion.div initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }} className="text-center md:text-left">
             <motion.div variants={staggerItem}>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--pl-accent)' }} />
                 AI-powered LinkedIn growth
               </div>
             </motion.div>
 
-            <motion.h1 variants={staggerItem} className="text-white mb-5"
-              style={{ fontFamily: 'var(--f-sans)', fontWeight: 800, fontSize: 'clamp(40px,7vw,72px)', lineHeight: 1.0, letterSpacing: '-0.04em' }}>
+            <motion.h1 variants={staggerItem} className="mb-5"
+              style={{ fontFamily: 'var(--f-sans)', fontWeight: 800, fontSize: 'clamp(40px,7vw,72px)', lineHeight: 1.0, letterSpacing: '-0.04em', color: 'var(--ink)' }}>
               Your LinkedIn,<br />
               <span style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--pl-accent)', letterSpacing: '-0.02em' }}>on autopilot.</span>
             </motion.h1>
 
             <motion.p variants={staggerItem} className="leading-relaxed mb-8 max-w-[460px] mx-auto md:mx-0"
-              style={{ fontSize: 'clamp(15px,1.5vw,18px)', color: 'rgba(255,255,255,0.55)', lineHeight: 1.8 }}>
+              style={{ fontSize: 'clamp(15px,1.5vw,18px)', color: 'var(--ink-3)', lineHeight: 1.8 }}>
               AI writes posts in your exact voice, schedules them at peak times, and grows your personal brand — while you focus on your actual work.
             </motion.p>
 
             <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
               <a href="/api/auth/linkedin"
                 className="flex items-center justify-center gap-2.5 transition-all hover:opacity-90"
-                style={{ height: 56, padding: '0 28px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: '#fff', color: 'var(--pl-accent)', boxShadow: '0 24px 64px rgba(43,77,255,0.25)' }}>
-                <LinkedinIcon className="w-5 h-5" style={{ color: 'var(--pl-accent)' }} />
+                style={{ height: 56, padding: '0 28px', borderRadius: 12, fontSize: 16, fontWeight: 700, background: 'var(--pl-accent)', color: '#fff', boxShadow: '0 24px 64px color-mix(in srgb, var(--pl-accent) 30%, transparent)' }}>
+                <LinkedinIcon className="w-5 h-5" />
                 Connect LinkedIn — Free
               </a>
               <button onClick={() => window.location.href = '/api/auth/google'}
                 className="flex items-center justify-center gap-2.5 transition-all hover:opacity-80"
-                style={{ height: 56, padding: '0 28px', borderRadius: 12, fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(8px)' }}>
+                style={{ height: 56, padding: '0 28px', borderRadius: 12, fontSize: 16, fontWeight: 600, color: 'var(--ink-2)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
                 <GoogleIcon className="w-5 h-5" />
                 Continue with Google
               </button>
             </motion.div>
 
             <motion.p variants={staggerItem} className="mt-5 flex items-center gap-2 justify-center md:justify-start"
-              style={{ fontSize: 13, color: 'rgba(255,255,255,0.32)' }}>
+              style={{ fontSize: 13, color: 'var(--ink-4)' }}>
               <span className="flex -space-x-1.5">
                 {['var(--pl-accent)', '#7c3aed', '#059669'].map((c, i) => (
-                  <span key={i} className="w-6 h-6 rounded-full border-2" style={{ background: c, borderColor: '#0b1628' }} />
+                  <span key={i} className="w-6 h-6 rounded-full border-2" style={{ background: c, borderColor: 'var(--bg)' }} />
                 ))}
               </span>
               Join 500+ founders already growing on LinkedIn
@@ -318,8 +310,6 @@ function HomeContent() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, transparent, var(--bg))' }} />
       </section>
 
       {/* ── Marquee strip ── */}
