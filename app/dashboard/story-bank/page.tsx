@@ -432,7 +432,7 @@ export default function StoryBankPage() {
                     <span
                       className="flex items-center gap-1"
                       style={{
-                        fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 'var(--r-full)',
+                        fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 'var(--r-full)', whiteSpace: 'nowrap',
                         background: statusInfo.color + '18', color: statusInfo.color,
                       }}
                     >

@@ -150,7 +150,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-slate-50 relative">
       <QuarterRings size={400} color="blue" opacity={0.05} className="fixed bottom-0 right-0 pointer-events-none hidden lg:block" />
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6">
         <div className="max-w-[720px] mx-auto h-16 flex items-center justify-between">
           <div className="flex items-center">
             <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
