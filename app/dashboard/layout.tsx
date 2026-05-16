@@ -574,7 +574,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <AnimatePresence mode="wait" initial={false}>
           <motion.main
             key={pathname}
-            className="flex-1 overflow-x-hidden pb-16 md:pb-0"
+            className="flex-1 overflow-x-hidden pb-nav-safe"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -597,7 +597,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 style={{ color: active ? 'var(--pl-accent)' : 'var(--ink-4)' }}
               >
                 <Icon size={20} strokeWidth={active ? 2 : 1.75} />
-                <span className={`text-[9px] font-semibold transition-opacity ${active ? 'opacity-100' : 'opacity-0 h-0'}`}>{item.label}</span>
+                <span className={`text-[9px] font-semibold transition-opacity ${active ? 'opacity-100' : 'opacity-50'}`}>{item.label}</span>
               </Link>
             )
           })}

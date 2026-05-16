@@ -316,7 +316,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-[900px]">
+    <div className="p-3 sm:p-4 md:p-8 max-w-[900px]">
       <div className="mb-6">
         <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
           Image Library

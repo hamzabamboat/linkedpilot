@@ -226,7 +226,7 @@ function SettingsContent() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-7">
+      <div className="p-3 sm:p-4 md:p-7">
         <div className="skeleton h-8 w-44 mb-8 rounded" />
         <div className="skeleton h-72 rounded-2xl mb-6" />
         <div className="skeleton h-48 rounded-2xl" />
@@ -260,7 +260,7 @@ function SettingsContent() {
   }
 
   return (
-    <div className="p-4 md:p-7 max-w-[700px]">
+    <div className="p-3 sm:p-4 md:p-7 max-w-[700px]">
       <div className="mb-6 md:mb-8">
         <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>Settings</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>// manage your account and preferences</p>
