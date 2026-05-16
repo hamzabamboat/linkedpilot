@@ -135,6 +135,8 @@ export default function StoryBankPage() {
   }
 
   async function startRecording() {
+    // Reset denied state so every Record click always attempts getUserMedia fresh
+    if (micPermission === 'denied') setMicPermission('unknown')
     const stream = await requestMicStream()
     if (!stream) return
     chunksRef.current = []
@@ -152,14 +154,11 @@ export default function StoryBankPage() {
     setRecording(true)
   }
 
-  async function switchToVoiceMode() {
+  function switchToVoiceMode() {
     setInputMode('voice')
     setNewStory('')
-    if (micPermission !== 'granted' && micPermission !== 'denied') {
-      setMicPermission('checking')
-      const stream = await requestMicStream()
-      stream?.getTracks().forEach(t => t.stop())
-    }
+    // Don't proactively call getUserMedia here — it fails silently on some
+    // browsers and permanently marks permission as 'denied'. Let Record handle it.
   }
 
   function stopRecording() { mediaRecorderRef.current?.stop(); setRecording(false) }
@@ -267,6 +266,9 @@ export default function StoryBankPage() {
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#92400e', marginBottom: 2 }}>Microphone access blocked</p>
                     <p style={{ fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>{getMicDeniedInstructions()}</p>
+                    <button onClick={startRecording} style={{ marginTop: 6, fontSize: 12, fontWeight: 600, color: '#d97706', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      I&apos;ve allowed it — try again
+                    </button>
                   </div>
                 </div>
               )}
@@ -280,27 +282,21 @@ export default function StoryBankPage() {
 
               {!audioBlob && !transcribing && !transcript && micPermission !== 'unavailable' && (
                 <div className="flex flex-wrap gap-3">
-                  {micPermission !== 'denied' && (
-                    <button
-                      onClick={recording ? stopRecording : startRecording}
-                      disabled={micPermission === 'checking'}
-                      className="flex items-center gap-2 transition-all hover:opacity-80"
-                      style={{
-                        padding: '8px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500,
-                        background: recording ? '#ef4444' : 'var(--surface-2)',
-                        color: recording ? '#fff' : 'var(--ink-2)',
-                        border: '1px solid ' + (recording ? '#ef4444' : 'var(--line)'),
-                        opacity: micPermission === 'checking' ? 0.6 : 1,
-                      }}
-                    >
-                      {micPermission === 'checking'
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Requesting access…</>
-                        : recording
-                          ? <><SquareIcon className="w-4 h-4" /> Stop recording</>
-                          : <><Mic className="w-4 h-4" /> Record</>
-                      }
-                    </button>
-                  )}
+                  <button
+                    onClick={recording ? stopRecording : startRecording}
+                    className="flex items-center gap-2 transition-all hover:opacity-80"
+                    style={{
+                      padding: '8px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500,
+                      background: recording ? '#ef4444' : 'var(--surface-2)',
+                      color: recording ? '#fff' : 'var(--ink-2)',
+                      border: '1px solid ' + (recording ? '#ef4444' : 'var(--line)'),
+                    }}
+                  >
+                    {recording
+                      ? <><SquareIcon className="w-4 h-4" /> Stop recording</>
+                      : <><Mic className="w-4 h-4" /> Record</>
+                    }
+                  </button>
                   {recording && (
                     <span className="flex items-center gap-1.5" style={{ fontSize: 13, color: '#ef4444', fontWeight: 500 }}>
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
