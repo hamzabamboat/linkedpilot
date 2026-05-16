@@ -215,18 +215,15 @@ function SidebarNav({ plan, pathname, collapsed }: { plan: string; pathname: str
                     collapsed ? 'justify-center px-2 py-2' : 'px-2.5 py-2'
                   }`}
                   style={{
-                    background: active ? 'var(--pl-accent-soft)' : 'transparent',
-                    color: active ? 'var(--pl-accent)' : locked ? 'var(--ink-4)' : 'var(--ink-3)',
+                    background: active ? 'var(--ink)' : 'transparent',
+                    color: active ? 'var(--bg)' : locked ? 'var(--ink-4)' : 'var(--ink-3)',
                   }}
                 >
-                  {active && !collapsed && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full" style={{ background: 'var(--pl-accent)' }} />
-                  )}
                   <Icon
                     className="shrink-0"
                     style={{
                       width: 16, height: 16,
-                      color: active ? 'var(--pl-accent)' : locked ? 'var(--ink-4)' : 'var(--ink-3)',
+                      color: active ? 'var(--bg)' : locked ? 'var(--ink-4)' : 'var(--ink-3)',
                     }}
                     strokeWidth={active ? 2 : 1.75}
                   />
@@ -235,9 +232,9 @@ function SidebarNav({ plan, pathname, collapsed }: { plan: string; pathname: str
                       <span className="flex-1 text-[13px]" style={{ fontFamily: 'var(--f-sans)', fontWeight: active ? 600 : 400 }}>
                         {item.label}
                       </span>
-                      {locked && <Lock size={11} style={{ color: 'var(--ink-4)' }} />}
+                      {locked && <Lock size={11} style={{ color: active ? 'var(--bg)' : 'var(--ink-4)' }} />}
                       {!locked && item.badge === 'ai' && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-bold rounded" style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', fontFamily: 'var(--f-mono)', letterSpacing: '.04em' }}>AI</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-bold rounded" style={{ background: active ? 'rgba(255,255,255,.18)' : 'var(--pl-accent-soft)', color: active ? '#fff' : 'var(--pl-accent)', fontFamily: 'var(--f-mono)', letterSpacing: '.04em' }}>AI</span>
                       )}
                       {!locked && typeof item.badge === 'number' && (
                         <span className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-full bg-red-500 text-white">{item.badge}</span>

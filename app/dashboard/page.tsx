@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Post, UserProfile } from '@/lib/supabase'
-import { ConcentricRings } from '@/components/concentric-rings'
 import { toast } from 'sonner'
 import {
   Sparkles,
@@ -12,16 +11,14 @@ import {
   CalendarDays,
   RefreshCw,
   ArrowRight,
-  Clock,
   Edit3,
   Send,
   Calendar,
 } from 'lucide-react'
 import { showUpgradeModal } from '@/components/upgrade-limit-modal'
-import { PostCard, PostCardSkeleton } from '@/components/post-card'
-import { EmptyState } from '@/components/empty-state'
 import { DisplayHeading } from '@/components/display-heading'
 import { Eyebrow } from '@/components/eyebrow'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 type ProfileAnalysis = {
   score: number
@@ -49,68 +46,105 @@ const TIPS = [
 
 /* ── Score Ring ─────────────────────────────────────────────── */
 function ScoreRing({ score }: { score: number }) {
-  const r = 42
+  const r = 48
   const c = 2 * Math.PI * r
   const filled = (score / 100) * c
   const color = score >= 70 ? 'var(--pl-accent)' : score >= 40 ? '#d97706' : '#ef4444'
   return (
-    <svg width={100} height={100} viewBox="0 0 100 100" className="-rotate-90">
-      <circle cx={50} cy={50} r={r} fill="none" stroke="var(--line-2)" strokeWidth={7} />
-      <circle cx={50} cy={50} r={r} fill="none" stroke={color} strokeWidth={7}
-        strokeDasharray={`${filled} ${c - filled}`} strokeLinecap="round"
-        style={{ transition: 'stroke-dasharray 1.2s ease' }} />
+    <svg width={120} height={120} viewBox="0 0 120 120" className="-rotate-90">
+      <circle cx={60} cy={60} r={r} fill="none" stroke="var(--line-2)" strokeWidth={10} />
+      <circle
+        cx={60} cy={60} r={r}
+        fill="none" stroke={color} strokeWidth={10}
+        strokeDasharray={`${filled} ${c - filled}`}
+        strokeLinecap="round"
+        style={{ transition: 'stroke-dasharray 1.2s ease' }}
+      />
     </svg>
   )
 }
 
-/* ── Voice Fingerprint (SVG art) ────────────────────────────── */
-function VoiceFingerprint() {
-  const pts1 = [0,18,6,14,12,22,18,10,24,20,30,8,36,18,42,12,48,20,54,6,60,16,66,10,72,22,78,14,84,18]
-  const pts2 = [0,22,6,26,12,20,18,28,24,18,30,24,36,16,42,26,48,18,54,28,60,20,66,24,72,18,78,28,84,22]
-  const toPath = (pts: number[]) => {
-    const pairs: [number, number][] = []
-    for (let i = 0; i < pts.length; i += 2) pairs.push([pts[i], pts[i + 1]])
-    return `M ${pairs.map(([x, y]) => `${x},${y}`).join(' L ')}`
-  }
+/* ── Tone Wave ──────────────────────────────────────────────── */
+function ToneWave() {
   return (
-    <svg viewBox="0 0 84 36" width="100%" height={36} style={{ display: 'block' }}>
-      <path d={toPath(pts1)} fill="none" stroke="var(--pl-accent)" strokeWidth={1.5} opacity={0.8} />
-      <path d={toPath(pts2)} fill="none" stroke="var(--pl-accent-2)" strokeWidth={1} opacity={0.4} />
-    </svg>
+    <div style={{ height: 80 }}>
+      <svg viewBox="0 0 200 80" preserveAspectRatio="none" width="100%" height="100%">
+        <path
+          d="M0,40 Q20,20 40,40 T80,40 T120,40 T160,40 T200,40"
+          fill="none" stroke="var(--pl-accent)" strokeWidth={2}
+        />
+        <path
+          d="M0,40 Q20,60 40,40 T80,40 T120,40 T160,40 T200,40"
+          fill="none" stroke="var(--pl-accent)" strokeWidth={2} opacity={0.4}
+        />
+      </svg>
+    </div>
   )
 }
 
-/* ── 7-Day Strip ────────────────────────────────────────────── */
-function ScheduleStrip({ posts }: { posts: Post[] }) {
-  const days: { label: string; date: Date; posts: Post[] }[] = []
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today); d.setDate(today.getDate() + i)
-    const dayPosts = posts.filter(p => {
-      if (!p.scheduled_at) return false
-      const pd = new Date(p.scheduled_at); pd.setHours(0, 0, 0, 0)
-      return pd.getTime() === d.getTime()
-    })
-    days.push({ label: i === 0 ? 'Today' : d.toLocaleDateString('en-IN', { weekday: 'short' }), date: d, posts: dayPosts })
+/* ── Schedule List ──────────────────────────────────────────── */
+function ScheduleList({ posts }: { posts: Post[] }) {
+  if (posts.length === 0) {
+    return (
+      <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', padding: '16px 0', margin: 0 }}>
+        No posts scheduled in the next 7 days.
+      </p>
+    )
   }
   return (
-    <div className="grid grid-cols-7 gap-1.5">
-      {days.map((day, i) => (
-        <div key={i} className="flex flex-col items-center gap-1.5">
-          <span className="text-[9px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>{day.label}</span>
-          <div
-            className="w-full aspect-square rounded flex items-center justify-center text-[11px] font-semibold"
+    <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      {posts.map((post, i) => {
+        const scheduled = post.scheduled_at ? new Date(post.scheduled_at) : null
+        const day  = scheduled ? scheduled.toLocaleDateString('en-IN', { weekday: 'short' }) : '—'
+        const time = scheduled ? scheduled.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'
+        const title = post.content?.split('\n')[0]?.slice(0, 80) || '(untitled)'
+        const isLast = i === posts.length - 1
+
+        let stateColor = 'var(--pl-accent)'
+        let stateBg    = 'var(--pl-accent-soft)'
+        let stateBorder = 'color-mix(in srgb, var(--pl-accent) 25%, transparent)'
+        let stateLabel  = 'scheduled'
+        if (post.status === 'draft') {
+          stateColor = 'var(--ink-3)'; stateBg = 'var(--surface-2)'; stateBorder = 'var(--line)'; stateLabel = 'draft'
+        } else if (post.status === 'pending_approval') {
+          stateColor = '#d97706'; stateBg = 'rgba(245,158,11,.12)'; stateBorder = 'rgba(245,158,11,.25)'; stateLabel = 'needs approval'
+        } else if (post.status === 'published') {
+          stateColor = '#2ec27e'; stateBg = 'rgba(46,194,126,.12)'; stateBorder = 'rgba(46,194,126,.25)'; stateLabel = 'published'
+        }
+
+        return (
+          <li
+            key={post.id}
             style={{
-              background: day.posts.length > 0 ? 'var(--pl-accent-soft)' : 'var(--surface-3)',
-              color: day.posts.length > 0 ? 'var(--pl-accent)' : 'var(--ink-4)',
-              border: i === 0 ? '1px solid var(--pl-accent)' : '1px solid transparent',
+              display: 'grid',
+              gridTemplateColumns: '40px 80px 1fr auto',
+              gap: 12,
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: isLast ? 'none' : '1px dashed var(--line)',
             }}
           >
-            {day.posts.length > 0 ? day.posts.length : '·'}
-          </div>
-        </div>
-      ))}
-    </div>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{day}</span>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, color: 'var(--ink-2)' }}>{time}</span>
+            <span style={{
+              color: 'var(--ink)', fontWeight: 500, fontSize: 13.5,
+              overflow: 'hidden', display: '-webkit-box',
+              WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', lineHeight: 1.35,
+            }}>
+              {title}
+            </span>
+            <span style={{
+              fontFamily: 'var(--f-mono)', fontSize: 10.5,
+              padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
+              color: stateColor, background: stateBg,
+              border: `1px solid ${stateBorder}`,
+            }}>
+              {stateLabel}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -119,12 +153,13 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const upgraded = searchParams.get('upgraded')
 
-  const [profile,    setProfile]    = useState<UserProfile | null>(null)
-  const [posts,      setPosts]      = useState<Post[]>([])
-  const [analysis,   setAnalysis]   = useState<ProfileAnalysis | null>(null)
+  const [profile,     setProfile]     = useState<UserProfile | null>(null)
+  const [posts,       setPosts]       = useState<Post[]>([])
+  const [analysis,    setAnalysis]    = useState<ProfileAnalysis | null>(null)
   const [reanalysing, setReanalysing] = useState(false)
-  const [loading,    setLoading]    = useState(true)
-  const [monthStats, setMonthStats] = useState({ generated: 0, published: 0, pending: 0 })
+  const [loading,     setLoading]     = useState(true)
+  const [monthStats,  setMonthStats]  = useState({ generated: 0, scheduled: 0, draft: 0, needsApproval: 0 })
+  const [user,        setUser]        = useState<{ linkedin_name?: string; linkedin_picture?: string } | null>(null)
 
   useEffect(() => {
     if (upgraded) toast.success('Subscription activated! Welcome to the plan.')
@@ -136,9 +171,9 @@ function DashboardContent() {
       try {
         const meRes = await fetch('/api/me')
         if (!meRes.ok) { window.location.href = '/'; return }
-        const { user: _u, profile: p } = await meRes.json()
+        const { user: u, profile: p } = await meRes.json()
         if (!p || cancelled) return
-        if (!cancelled) setProfile(p)
+        if (!cancelled) { setProfile(p); setUser(u) }
 
         const now = new Date()
         const createdMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -155,9 +190,10 @@ function DashboardContent() {
           if (latestAnalysis) setAnalysis(latestAnalysis)
           const all: Post[] = monthRes.posts || []
           setMonthStats({
-            generated: all.length,
-            published: all.filter(p => p.status === 'published').length,
-            pending:   all.filter(p => p.status === 'pending_approval' || p.status === 'scheduled').length,
+            generated:     all.length,
+            scheduled:     all.filter(p => p.status === 'scheduled').length,
+            draft:         all.filter(p => p.status === 'draft').length,
+            needsApproval: all.filter(p => p.status === 'pending_approval').length,
           })
         }
       } catch {
@@ -188,247 +224,384 @@ function DashboardContent() {
     }
   }
 
-  const firstName  = profile?.name?.split(' ')[0] || 'there'
+  const firstName  = profile?.name?.split(' ')[0] || user?.linkedin_name?.split(' ')[0] || 'there'
   const hour       = new Date().getHours()
   const greeting   = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 21 ? 'Good evening' : 'Good night'
   const todayStr   = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })
   const postsUsed  = profile?.posts_used_this_month || 0
   const postsLimit = profile?.posts_limit || 12
-  const pillars    = profile?.content_pillars || []
-  const plan       = profile?.plan || 'starter'
   const _now       = new Date()
   const _dayOfYear = Math.floor((_now.getTime() - new Date(_now.getFullYear(), 0, 0).getTime()) / 86400000)
   const tipOfDay   = TIPS[_dayOfYear % TIPS.length]
   const nextPost   = posts[0] || null
 
+  /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="p-3 sm:p-5 md:p-8">
+      <div className="p-5 md:p-8">
         <div style={{ height: 56, background: 'var(--surface-3)', borderRadius: 'var(--r-md)' }} className="animate-pulse mb-6 w-72" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 flex flex-col gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} style={{ height: 80, background: 'var(--surface-3)', borderRadius: 'var(--r-lg)' }} className="animate-pulse" />
-            ))}
-          </div>
-          <div className="flex flex-col gap-4">
-            {[...Array(2)].map((_, i) => (
-              <div key={i} style={{ height: 140, background: 'var(--surface-3)', borderRadius: 'var(--r-lg)' }} className="animate-pulse" />
-            ))}
-          </div>
+        <div style={{ height: 130, background: 'var(--surface-3)', borderRadius: 'var(--r-lg)' }} className="animate-pulse mb-4" />
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ height: 90, background: 'var(--surface-3)', borderRadius: 'var(--r-md)' }} className="animate-pulse" />
+          ))}
         </div>
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ height: 220, background: 'var(--surface-3)', borderRadius: 'var(--r-md)' }} className="animate-pulse" />
+          ))}
+        </div>
+        <div style={{ height: 200, background: 'var(--surface-3)', borderRadius: 'var(--r-md)' }} className="animate-pulse" />
       </div>
     )
   }
 
   return (
-    <div className="p-3 sm:p-5 md:p-8">
+    <div className="p-5 md:p-8">
+
       {/* ── Greeting ── */}
-      <div className="mb-8">
-        <Eyebrow dot className="mb-4">{todayStr}</Eyebrow>
-        <DisplayHeading
-          as="h1"
-          size="h"
-          text={`${greeting}, ${firstName}.`}
-          accent="Your week is already written."
-        />
-      </div>
+      <header className="mb-7">
+        <Eyebrow dot className="mb-3">{todayStr}</Eyebrow>
+        <DisplayHeading as="h1" size="h" text={`${greeting}, ${firstName}.`} accent="Your week is already written." />
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* ── Left (col-span-2) ── */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
-
-          {/* Next post hero card */}
-          <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-2)' }}>
-            <div className="text-[10px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// next post</div>
-            {nextPost ? (
-              <>
-                <p className="text-[14px] leading-relaxed line-clamp-3 mb-4" style={{ color: 'var(--ink-2)', fontFamily: 'var(--f-sans)' }}>
-                  {nextPost.content}
-                </p>
-                {nextPost.scheduled_at && (
-                  <div className="flex items-center gap-1.5 mb-4" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', fontSize: 11 }}>
-                    <Clock size={11} />
-                    {new Date(nextPost.scheduled_at).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Link href={`/dashboard/posts?edit=${nextPost.id}`}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors"
-                    style={{ background: 'var(--bg-2)', color: 'var(--ink-2)', border: '1px solid var(--line)', fontFamily: 'var(--f-sans)' }}>
-                    <Edit3 size={12} /> Edit
-                  </Link>
-                  <Link href="/dashboard/calendar"
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors"
-                    style={{ background: 'var(--bg-2)', color: 'var(--ink-2)', border: '1px solid var(--line)', fontFamily: 'var(--f-sans)' }}>
-                    <Calendar size={12} /> Reschedule
-                  </Link>
-                  <button
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] font-semibold text-white transition-all ml-auto"
-                    style={{ background: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}>
-                    <Send size={12} /> Publish now
-                  </button>
-                </div>
-              </>
-            ) : (
-              <EmptyState
-                icon={CalendarDays}
-                title="No posts scheduled"
-                subtitle="Generate your first post and schedule it to go live automatically."
-                ctaLabel="Generate a post"
-                ctaHref="/dashboard/generate"
-              />
-            )}
-          </div>
-
-          {/* Quick actions */}
-          <div>
-            <div className="text-[10px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// quick actions</div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { href: '/dashboard/generate',          label: 'Generate',        sub: 'Write with AI',     icon: Sparkles },
-                { href: '/dashboard/generate?tab=voice', label: 'Voice note',     sub: 'Speak your idea',   icon: Mic },
-                { href: '/dashboard/generate?tab=bulk',  label: 'Plan a month',   sub: 'Bulk generate',     icon: CalendarDays },
-              ].map(a => {
-                const Icon = a.icon
-                return (
-                  <Link key={a.href} href={a.href}
-                    className="flex flex-col gap-2 p-4 rounded-xl transition-all duration-200 hover:-translate-y-0.5 group"
-                    style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--pl-accent-soft)' }}>
-                      <Icon size={15} style={{ color: 'var(--pl-accent)' }} strokeWidth={1.75} />
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-semibold" style={{ color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>{a.label}</div>
-                      <div className="text-[11px]" style={{ color: 'var(--ink-4)' }}>{a.sub}</div>
-                    </div>
-                    <ArrowRight size={12} className="ml-auto transition-transform group-hover:translate-x-0.5" style={{ color: 'var(--ink-4)' }} />
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* 7-day schedule strip */}
-          <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// 7-day schedule</div>
-              <Link href="/dashboard/calendar" className="text-[11px] flex items-center gap-0.5 transition-opacity hover:opacity-70" style={{ color: 'var(--pl-accent)', fontFamily: 'var(--f-mono)' }}>
-                View all <ArrowRight size={10} />
-              </Link>
-            </div>
-            <ScheduleStrip posts={posts} />
-          </div>
-
-          {/* Content pillars */}
-          {pillars.length > 0 && (
-            <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <div className="text-[10px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// content pillars</div>
-              <div className="flex flex-wrap gap-2">
-                {pillars.map(p => (
-                  <Link key={p} href={`/dashboard/generate?idea=${encodeURIComponent(p)}`}
-                    className="text-[12px] font-medium px-3 py-1.5 rounded-full transition-colors"
-                    style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)' }}>
-                    {p}
-                  </Link>
-                ))}
-              </div>
-            </div>
+      {/* ── Next Post Hero ── */}
+      <div
+        className="rounded-xl p-5 mb-4"
+        style={{
+          background: 'linear-gradient(180deg, var(--surface) 0%, color-mix(in srgb, var(--pl-accent) 4%, var(--surface)) 120%)',
+          border: '1px solid color-mix(in srgb, var(--pl-accent) 14%, var(--line))',
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+            Next post
+          </span>
+          {nextPost?.scheduled_at && (
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-3)' }}>
+              scheduled · {new Date(nextPost.scheduled_at).toLocaleDateString('en-IN', { weekday: 'short' })}{' '}
+              {new Date(nextPost.scheduled_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </span>
           )}
         </div>
 
-        {/* ── Right column ── */}
-        <div className="flex flex-col gap-4">
-          {/* LinkedIn Score */}
-          <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-2)' }}>
-            <ConcentricRings size={160} className="absolute inset-0 m-auto pointer-events-none" opacity={0.04} />
-            <div className="text-[10px] mb-4 relative" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// linkedin score</div>
-            {analysis ? (
-              <>
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="relative shrink-0">
-                    <ScoreRing score={analysis.score} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[17px] font-extrabold" style={{ color: 'var(--ink)' }}>{analysis.score}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-extrabold" style={{ color: 'var(--ink)' }}>
-                      {analysis.score}<span className="text-sm font-normal" style={{ color: 'var(--ink-4)' }}>/100</span>
-                    </div>
-                    <div className="text-[10px] mt-0.5" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-                      {(() => {
-                        const days = Math.floor((Date.now() - new Date(analysis.analysed_at).getTime()) / (1000 * 60 * 60 * 24))
-                        if (days < 1) return 'analysed today'
-                        if (days === 1) return 'analysed yesterday'
-                        return `${days} days ago`
-                      })()}
-                    </div>
-                  </div>
+        {nextPost ? (
+          <div className="rounded-lg p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+            {/* Author row */}
+            <div className="flex items-center gap-2.5 mb-3">
+              <Avatar className="w-8 h-8 shrink-0">
+                <AvatarImage src={user?.linkedin_picture || ''} />
+                <AvatarFallback style={{
+                  background: 'linear-gradient(135deg, var(--pl-accent), var(--pl-accent))',
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                }}>
+                  {(user?.linkedin_name || firstName)[0]?.toUpperCase() || 'A'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>
+                  {user?.linkedin_name || firstName}
                 </div>
-                {analysis.improvements?.slice(0, 2).map((tip, i) => (
-                  <div key={i} className="flex gap-2 items-start text-[12px] mb-1.5" style={{ color: 'var(--ink-3)' }}>
-                    <span className="mt-0.5 shrink-0" style={{ color: 'var(--pl-accent)' }}>→</span>
-                    <span>{tip}</span>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div className="text-center py-2">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ border: '3px solid var(--line-2)' }}>
-                  <span className="text-[20px] font-extrabold" style={{ color: 'var(--ink-4)' }}>?</span>
+                <div style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, color: 'var(--ink-4)' }}>
+                  in your voice · approved
                 </div>
-                <p className="text-[12px]" style={{ color: 'var(--ink-4)' }}>Run an AI analysis of your LinkedIn profile</p>
               </div>
+            </div>
+
+            {/* Content */}
+            <p style={{
+              fontSize: 14, lineHeight: 1.6, color: 'var(--ink-2)', margin: '0 0 14px',
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              {nextPost.content}
+            </p>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link
+                href={`/dashboard/posts?edit=${nextPost.id}`}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors"
+                style={{ background: 'var(--surface)', color: 'var(--ink-2)', border: '1px solid var(--line)', fontFamily: 'var(--f-sans)' }}
+              >
+                <Edit3 size={12} /> Edit
+              </Link>
+              <Link
+                href="/dashboard/calendar"
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors"
+                style={{ background: 'transparent', color: 'var(--ink-3)', fontFamily: 'var(--f-sans)' }}
+              >
+                <Calendar size={12} /> Reschedule
+              </Link>
+              <button
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[12.5px] font-semibold text-white transition-all ml-auto"
+                style={{ background: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}
+              >
+                <Send size={12} /> Publish now
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg p-6 text-center" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+            <CalendarDays size={28} className="mx-auto mb-2" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+            <p style={{ fontSize: 14, color: 'var(--ink-3)', margin: '0 0 12px' }}>No posts scheduled yet</p>
+            <Link
+              href="/dashboard/generate"
+              className="inline-flex items-center gap-1.5 h-8 px-4 rounded-md text-[13px] font-semibold text-white"
+              style={{ background: 'var(--pl-accent)' }}
+            >
+              <Sparkles size={13} /> Generate a post
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* ── Quick Actions ── */}
+      <div className="grid grid-cols-3 gap-2.5 mb-6">
+        {[
+          { href: '/dashboard/generate',            icon: Sparkles,     label: 'Generate post',     sub: 'AI · in your voice' },
+          { href: '/dashboard/generate?tab=voice',  icon: Mic,          label: 'Voice note → post', sub: 'Ramble. Get a draft.' },
+          { href: '/dashboard/generate?tab=bulk',   icon: CalendarDays, label: 'Bulk plan month',   sub: '30 posts · 8 minutes' },
+        ].map(a => {
+          const Icon = a.icon
+          return (
+            <Link
+              key={a.href}
+              href={a.href}
+              className="flex flex-col items-start gap-1 p-3.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: 'var(--sh-1)' }}
+            >
+              <Icon size={18} style={{ color: 'var(--pl-accent)', marginBottom: 6 }} strokeWidth={1.5} />
+              <strong style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, lineHeight: 1.25, display: 'block' }}>
+                {a.label}
+              </strong>
+              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.4, display: 'block' }}>
+                {a.sub}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+
+      {/* ── Overview Grid (12-col) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 14 }}>
+
+        {/* LinkedIn Score — span 4 */}
+        <div
+          className="flex flex-col gap-3.5 ov-card"
+          style={{
+            gridColumn: 'span 4',
+            background: 'var(--surface)', border: '1px solid var(--line)',
+            borderRadius: 'var(--r-md)', padding: 22,
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+              LinkedIn Score
+            </span>
+            {analysis && (
+              <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-3)' }}>
+                ↑ updated
+              </span>
             )}
-            <button onClick={handleReanalyse} disabled={reanalysing}
-              className="mt-3 w-full py-2 px-3 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-opacity disabled:opacity-60"
-              style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}>
-              <RefreshCw size={13} className={reanalysing ? 'animate-spin' : ''} />
-              {reanalysing ? 'Analysing...' : 'Analyse Profile'}
-            </button>
           </div>
 
-          {/* This month stats */}
-          <div className="rounded-xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// this month</div>
-              <span className="text-[10px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)' }}>{postsUsed}/{postsLimit}</span>
-            </div>
-            <div className="h-1 rounded-full mb-4 overflow-hidden" style={{ background: 'var(--line-2)' }}>
-              <div className="h-full rounded-full" style={{ width: `${Math.min((postsUsed / postsLimit) * 100, 100)}%`, background: 'var(--pl-accent)' }} />
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { label: 'Generated', value: monthStats.generated },
-                { label: 'Published', value: monthStats.published, accent: true },
-                { label: 'Pending',   value: monthStats.pending },
-              ].map(s => (
-                <div key={s.label} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: s.accent ? 'var(--pl-accent-soft)' : 'var(--surface-3)' }}>
-                  <span className="text-sm font-bold" style={{ color: s.accent ? 'var(--pl-accent)' : 'var(--ink-2)' }}>{s.value}</span>
-                  <span className="text-[10px]" style={{ color: s.accent ? 'var(--pl-accent)' : 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>{s.label}</span>
+          {analysis ? (
+            <>
+              <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
+                <ScoreRing score={analysis.score} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                  <strong style={{ fontSize: 38, fontWeight: 500, letterSpacing: '-.03em', color: 'var(--ink)' }}>
+                    {analysis.score}
+                  </strong>
+                  <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>
+                    / 100
+                  </span>
                 </div>
-              ))}
+              </div>
+
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {analysis.improvements?.slice(0, 3).map((tip, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.4 }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4,
+                      background: i < 2 ? 'var(--pl-accent)' : '#f59e0b',
+                    }} />
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/dashboard/analytics"
+                style={{ fontFamily: 'var(--f-mono)', fontSize: 11.5, color: 'var(--pl-accent)', marginTop: 'auto' }}
+              >
+                See full breakdown →
+              </Link>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0', gap: 12 }}>
+              <div style={{ width: 120, height: 120, borderRadius: '50%', border: '10px solid var(--line-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 38, fontWeight: 500, color: 'var(--ink-4)' }}>?</span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ink-4)', textAlign: 'center', margin: 0 }}>
+                Run an AI analysis of your LinkedIn profile
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={handleReanalyse}
+            disabled={reanalysing}
+            className="w-full py-2 px-3 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-opacity disabled:opacity-60"
+            style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}
+          >
+            <RefreshCw size={13} className={reanalysing ? 'animate-spin' : ''} />
+            {reanalysing ? 'Analysing...' : 'Analyse Profile'}
+          </button>
+        </div>
+
+        {/* This Month — span 4 */}
+        <div
+          className="flex flex-col ov-card"
+          style={{
+            gridColumn: 'span 4',
+            background: 'var(--surface)', border: '1px solid var(--line)',
+            borderRadius: 'var(--r-md)', padding: 22,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+              This month
+            </span>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-3)' }}>
+              {new Date().toLocaleDateString('en-IN', { month: 'short' })} 1 – {new Date().getDate()}
+            </span>
+          </div>
+
+          {/* Big number */}
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ fontSize: 'clamp(36px, 4vw, 48px)', fontWeight: 500, letterSpacing: '-.035em', lineHeight: 1, color: 'var(--ink)' }}>
+              {postsUsed}
+              <em style={{ fontFamily: 'var(--f-mono)', fontStyle: 'normal', fontSize: '0.35em', color: 'var(--ink-4)', marginLeft: 6 }}>
+                / {postsLimit}
+              </em>
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 6 }}>Posts shipped</div>
+            <div style={{ marginTop: 12, height: 6, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.min((postsUsed / postsLimit) * 100, 100)}%`,
+                background: 'linear-gradient(90deg, var(--pl-accent), var(--pl-accent))',
+                borderRadius: 99,
+              }} />
             </div>
           </div>
 
-          {/* Voice fingerprint */}
-          <div className="rounded-xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
-            <div className="text-[10px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.06em' }}>// voice fingerprint</div>
-            <VoiceFingerprint />
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-[11px]" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>match score</span>
-              <span className="text-[13px] font-bold" style={{ color: 'var(--pl-accent)' }}>98%</span>
-            </div>
+          {/* 3-col stat row */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+            marginTop: 18, paddingTop: 18, borderTop: '1px dashed var(--line)',
+          }}>
+            {[
+              { label: 'scheduled',     value: monthStats.scheduled },
+              { label: 'in draft',      value: monthStats.draft },
+              { label: 'need approval', value: monthStats.needsApproval },
+            ].map(s => (
+              <div key={s.label}>
+                <strong style={{ display: 'block', fontSize: 22, fontWeight: 500, letterSpacing: '-.025em', color: 'var(--ink)' }}>
+                  {s.value}
+                </strong>
+                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{s.label}</span>
+              </div>
+            ))}
           </div>
 
-          {/* Tip of the day */}
-          <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: 'var(--pl-accent)', color: '#fff' }}>
-            <div className="text-[9px] font-bold uppercase tracking-widest mb-2 opacity-70" style={{ fontFamily: 'var(--f-mono)' }}>// tip of the day</div>
-            <p className="text-[13px] leading-relaxed font-medium opacity-90">{tipOfDay}</p>
+          {/* Embedded tip */}
+          <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px dashed var(--line)' }}>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10.5, color: 'var(--ink-4)', letterSpacing: '.04em', display: 'block', marginBottom: 8 }}>
+              // tip of the day
+            </span>
+            <blockquote style={{
+              margin: 0,
+              fontFamily: 'var(--f-display, Georgia, serif)',
+              fontStyle: 'italic',
+              fontSize: 'clamp(14px, 1.3vw, 17px)',
+              lineHeight: 1.45,
+              color: 'var(--ink)',
+            }}>
+              <span style={{ color: 'var(--pl-accent)', fontSize: '1.3em', lineHeight: 1, marginRight: 2 }}>"</span>
+              {tipOfDay}
+            </blockquote>
           </div>
         </div>
+
+        {/* Voice Fingerprint — span 4 */}
+        <div
+          className="flex flex-col gap-3.5 ov-card"
+          style={{
+            gridColumn: 'span 4',
+            background: 'var(--surface)', border: '1px solid var(--line)',
+            borderRadius: 'var(--r-md)', padding: 22,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+              Voice fingerprint
+            </span>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-3)' }}>
+              98% tone match
+            </span>
+          </div>
+
+          <ToneWave />
+
+          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.55, margin: 0, flex: 1 }}>
+            Your last 5 posts averaged{' '}
+            <strong style={{ color: 'var(--pl-accent)', fontWeight: 600 }}>98%</strong>{' '}
+            match against your reference samples. Keep going — the model is locking in.
+          </p>
+
+          <Link
+            href="/dashboard/profile"
+            style={{ fontFamily: 'var(--f-mono)', fontSize: 11.5, color: 'var(--pl-accent)', marginTop: 'auto' }}
+          >
+            Inspect voice →
+          </Link>
+        </div>
+
+        {/* Upcoming Schedule — span 12 */}
+        <div
+          style={{
+            gridColumn: 'span 12',
+            background: 'var(--surface)', border: '1px solid var(--line)',
+            borderRadius: 'var(--r-md)', padding: 22,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', letterSpacing: '.04em' }}>
+              Upcoming · 7 days
+            </span>
+            <Link
+              href="/dashboard/calendar"
+              style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', display: 'flex', alignItems: 'center', gap: 2 }}
+            >
+              See calendar <ArrowRight size={10} />
+            </Link>
+          </div>
+          <ScheduleList posts={posts} />
+        </div>
+
       </div>
+
+      {/* Responsive override for small screens */}
+      <style>{`
+        @media (max-width: 900px) {
+          .ov-card { grid-column: span 6 !important; }
+        }
+        @media (max-width: 600px) {
+          .ov-card { grid-column: span 12 !important; }
+        }
+      `}</style>
     </div>
   )
 }
