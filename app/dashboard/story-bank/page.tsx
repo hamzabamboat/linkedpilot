@@ -190,7 +190,7 @@ export default function StoryBankPage() {
   const canSave = inputMode === 'voice' ? !!transcript.trim() : !!newStory.trim()
 
   return (
-    <div className="p-3 sm:p-4 md:p-7 max-w-[820px]">
+    <div className="p-4 md:p-7 max-w-[820px]">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

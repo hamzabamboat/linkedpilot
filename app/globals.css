@@ -364,24 +364,6 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
 .safe-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-/* Main content bottom padding — clears mobile bottom nav */
-.pb-nav-safe {
-  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-}
-@media (min-width: 768px) {
-  .pb-nav-safe { padding-bottom: 0; }
-}
-
-/* Tab bar — horizontal scroll with hidden scrollbar */
-.tabs-overflow {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.tabs-overflow::-webkit-scrollbar {
-  display: none;
-}
-
 
 /* Sidebar width tokens */
 :root {

@@ -578,9 +578,8 @@ function GenerateContent() {
       )}
 
       <Tabs value={tab} onValueChange={v => setTab(v as Tab)}>
-        <div className="tabs-overflow -mx-1 px-1">
         <TabsList
-          className="w-full min-w-[340px] h-10 gap-1 p-1"
+          className="w-full h-10 gap-1 p-1"
           style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}
         >
           <TabsTrigger value="prompt" className="flex-1 gap-1.5 text-[12.5px] rounded data-[state=active]:bg-surface data-[state=active]:shadow-sm">
@@ -597,7 +596,6 @@ function GenerateContent() {
             <Sparkles size={13} /> Bulk
           </TabsTrigger>
         </TabsList>
-        </div>
 
         {/* ── From a prompt ── */}
         <TabsContent value="prompt" className="mt-4">

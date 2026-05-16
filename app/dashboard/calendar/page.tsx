@@ -142,7 +142,7 @@ export default function CalendarPage() {
   const addPostDateStr = addPostDay ? `${MONTH_NAMES[month]} ${addPostDay}, ${year}` : ''
 
   return (
-    <div className="p-3 sm:p-4 md:p-7 max-w-[960px]">
+    <div className="p-4 md:p-7 max-w-[960px]">
       <ImageSelector
         open={imageSelectorOpen}
         onClose={() => setImageSelectorOpen(false)}

@@ -38,7 +38,7 @@ function UpgradeContent() {
 
   if (currentPlan === 'pro') {
     return (
-      <div className="p-4 sm:p-8 max-w-3xl">
+      <div className="p-8 max-w-3xl">
         <Link href="/dashboard"
           className="flex items-center gap-1.5 mb-8 transition-opacity hover:opacity-70"
           style={{ fontSize: 13, color: 'var(--ink-4)' }}>
@@ -75,7 +75,7 @@ function UpgradeContent() {
   }
 
   return (
-    <div className="p-4 sm:p-8 max-w-3xl">
+    <div className="p-8 max-w-3xl">
       <Link href="/dashboard"
         className="flex items-center gap-1.5 mb-8 transition-opacity hover:opacity-70"
         style={{ fontSize: 13, color: 'var(--ink-4)' }}>

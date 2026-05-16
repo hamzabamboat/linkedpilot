@@ -203,7 +203,7 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-5 md:p-8">
+      <div className="p-5 md:p-8">
         <div style={{ height: 56, background: 'var(--surface-3)', borderRadius: 'var(--r-md)' }} className="animate-pulse mb-6 w-72" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-4">
@@ -222,7 +222,7 @@ function DashboardContent() {
   }
 
   return (
-    <div className="p-3 sm:p-5 md:p-8">
+    <div className="p-5 md:p-8">
       {/* ── Greeting ── */}
       <div className="mb-8">
         <Eyebrow dot className="mb-4">{todayStr}</Eyebrow>

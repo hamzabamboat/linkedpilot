@@ -121,7 +121,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="p-3 sm:p-4 md:p-7">
+      <div className="p-4 md:p-7">
         <div className="skeleton h-8 w-48 mb-6 rounded" />
         <div className="skeleton h-48 rounded-2xl mb-5" />
         <div className="skeleton h-48 rounded-2xl" />
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
 
   if (plan === 'starter') {
     return (
-      <div className="p-3 sm:p-4 md:p-7 max-w-2xl">
+      <div className="p-4 md:p-7 max-w-2xl">
         <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 24 }}>
           Analytics
         </h1>
@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
   const medalColors = ['#f59e0b', '#94a3b8', '#d97706']
 
   return (
-    <div className="p-3 sm:p-4 md:p-7 max-w-4xl">
+    <div className="p-4 md:p-7 max-w-4xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
