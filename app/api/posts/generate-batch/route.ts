@@ -304,8 +304,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const allPosts = [...storyPosts, ...regularPosts]
-
   if (allPosts.length === 0) {
     return NextResponse.json({ error: 'Failed to generate posts. Please try again.' }, { status: 500 })
   }
