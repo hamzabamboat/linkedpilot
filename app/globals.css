@@ -329,7 +329,7 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Custom animations */
+/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -342,111 +342,14 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
-}
-@keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(10, 102, 194, 0.3); }
-  70% { box-shadow: 0 0 0 10px rgba(10, 102, 194, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(10, 102, 194, 0); }
-}
 
 .animate-fade { animation: fadeIn 0.3s ease both; }
-.animate-float { animation: float 3s ease-in-out infinite; }
-
-/* Testimonial carousel — CSS only, zero JS */
-@keyframes testimonialFade {
-  0%, 45% { opacity: 1; transform: translateY(0); }
-  50%, 95% { opacity: 0; transform: translateY(-10px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-.testimonial-item {
-  animation: testimonialFade 8s ease-in-out infinite;
-}
-.testimonial-item-2 {
-  animation: testimonialFade 8s ease-in-out infinite;
-  animation-delay: 4s;
-}
 
 .skeleton {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
-}
-
-/* Card hover lift */
-.card-hover {
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-}
-.card-hover:hover {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
-}
-
-/* Gradient text — for use on light backgrounds */
-.gradient-text {
-  background: linear-gradient(135deg, #0B458B 0%, #7c3aed 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Gradient text — for use on dark backgrounds (hero) */
-.gradient-text-hero {
-  background: linear-gradient(135deg, #93c5fd 0%, #c4b5fd 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Hero gradient mesh */
-.hero-bg {
-  background-color: #f8faff;
-  background-image:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10, 102, 194, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 85% 30%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
-}
-
-/* Section gradient */
-.section-gradient {
-  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
-}
-
-/* Feature icon containers */
-.icon-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
-/* Custom range input for pricing slider */
-input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 99px;
-  background: #e2e8f0;
-  outline: none;
-  cursor: pointer;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #0B458B;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(11,69,139,0.4);
-  transition: transform 0.1s;
-}
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
 }
 
 /* Responsive utils */
@@ -501,80 +404,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   }
 }
 
-/* ── Dark mode global overrides ────────────────────────────────────────────
-   Outside any @layer so they win the cascade over Tailwind utilities.
-   These cover hardcoded Tailwind color classes that lack dark: variants.
-   ────────────────────────────────────────────────────────────────────────── */
-.dark {
-  color-scheme: dark;
-}
-
-/* Text: dark grays → near-white */
-.dark .text-gray-900 { color: #f1f5f9; }
-.dark .text-slate-900 { color: #f1f5f9; }
-.dark .text-gray-800 { color: #e2e8f0; }
-.dark .text-slate-800 { color: #e2e8f0; }
-.dark .text-gray-700 { color: #cbd5e1; }
-.dark .text-slate-700 { color: #cbd5e1; }
-.dark .text-gray-600 { color: #94a3b8; }
-.dark .text-slate-600 { color: #94a3b8; }
-.dark .text-gray-500 { color: #64748b; }
-.dark .text-slate-500 { color: #64748b; }
-
-/* Backgrounds: white/light → dark slate */
-.dark .bg-white { background-color: #1e293b; }
-.dark .bg-white\/90 { background-color: rgb(15 23 42 / 0.9); }
-.dark .bg-white\/95 { background-color: rgb(15 23 42 / 0.95); }
-.dark .bg-slate-50 { background-color: #1e293b; }
-/* bg-slate-50/50 intentionally omitted: the only full-screen user is dashboard
-   layout which already has dark:bg-slate-950 — the unlayered override was
-   blocking it from applying. */
-.dark .bg-slate-100 { background-color: #334155; }
-.dark .bg-gray-50 { background-color: #1e293b; }
-.dark .bg-gray-100 { background-color: #334155; }
-
-/* Borders: light → muted dark */
-.dark .border-slate-50 { border-color: #334155; }
-.dark .border-slate-100 { border-color: #334155; }
-.dark .border-slate-200 { border-color: #475569; }
-.dark .border-gray-100 { border-color: #334155; }
-.dark .border-gray-200 { border-color: #475569; }
-
-/* Hover states: light hover → dark hover */
-.dark .hover\:bg-white:hover { background-color: #334155; }
-.dark .hover\:bg-slate-50:hover { background-color: #334155; }
-.dark .hover\:bg-slate-50\/50:hover { background-color: rgb(51 65 85 / 0.5); }
-
-/* Rings and shadows */
-.dark .ring-slate-100 { --tw-ring-color: #334155; }
-.dark .ring-slate-200 { --tw-ring-color: #475569; }
-
-/* Skeleton shimmer */
-.dark .skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
-}
-
-/* Landing page custom bg classes */
-.dark .hero-bg {
-  background-color: #0f172a;
-  background-image:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(10, 102, 194, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 85% 30%, rgba(124, 58, 237, 0.08) 0%, transparent 50%);
-}
-.dark .section-gradient {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-}
-
-/* Logo images: always white background, never inverted or darkened */
+/* Logo images: always white background */
 .logo-always-white {
   background-color: white !important;
-}
-
-/* Generate page — batch banner gradient */
-.batch-banner {
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%) !important;
-  border-color: transparent !important;
-}
-.dark .batch-banner {
-  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%) !important;
 }

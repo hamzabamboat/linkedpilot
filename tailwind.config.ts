@@ -59,7 +59,7 @@ const config: Config = {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        // Brand colors
+        // Legacy colors — still used by admin/agency/onboarding pages
         brand: {
           DEFAULT: "#0B458B",
           dark: "#083670",
