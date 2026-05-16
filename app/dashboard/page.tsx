@@ -46,15 +46,15 @@ const TIPS = [
 
 /* ── Score Ring ─────────────────────────────────────────────── */
 function ScoreRing({ score }: { score: number }) {
-  const r = 48
+  const r = 64
   const c = 2 * Math.PI * r
   const filled = (score / 100) * c
   const color = score >= 70 ? 'var(--pl-accent)' : score >= 40 ? '#d97706' : '#ef4444'
   return (
-    <svg width={120} height={120} viewBox="0 0 120 120" className="-rotate-90">
-      <circle cx={60} cy={60} r={r} fill="none" stroke="var(--line-2)" strokeWidth={10} />
+    <svg width={160} height={160} viewBox="0 0 160 160" className="-rotate-90">
+      <circle cx={80} cy={80} r={r} fill="none" stroke="var(--line-2)" strokeWidth={10} />
       <circle
-        cx={60} cy={60} r={r}
+        cx={80} cy={80} r={r}
         fill="none" stroke={color} strokeWidth={10}
         strokeDasharray={`${filled} ${c - filled}`}
         strokeLinecap="round"
@@ -410,7 +410,7 @@ function DashboardContent() {
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
                 <ScoreRing score={analysis.score} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                  <strong style={{ fontSize: 38, fontWeight: 500, letterSpacing: '-.03em', color: 'var(--ink)' }}>
+                  <strong style={{ fontSize: 44, fontWeight: 500, letterSpacing: '-.03em', color: 'var(--ink)' }}>
                     {analysis.score}
                   </strong>
                   <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>
@@ -424,7 +424,7 @@ function DashboardContent() {
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.4 }}>
                     <span style={{
                       width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4,
-                      background: i < 2 ? 'var(--pl-accent)' : '#f59e0b',
+                      background: i < 2 ? '#2ec27e' : '#f59e0b',
                     }} />
                     {tip}
                   </li>
@@ -491,7 +491,7 @@ function DashboardContent() {
               <div style={{
                 height: '100%',
                 width: `${Math.min((postsUsed / postsLimit) * 100, 100)}%`,
-                background: 'linear-gradient(90deg, var(--pl-accent), var(--pl-accent))',
+                background: 'linear-gradient(90deg, var(--pl-accent), var(--pl-accent-2))',
                 borderRadius: 99,
               }} />
             </div>
