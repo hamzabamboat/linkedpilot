@@ -1,13 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase, Post } from '@/lib/supabase'
 import Link from 'next/link'
 import {
-  ThumbsUp, Eye, FileEdit, BarChart3, Zap, Trophy, TrendingUp, RefreshCw,
+  ThumbsUp, Eye, FileEdit, BarChart3, Zap, Trophy, TrendingUp, RefreshCw, Sparkles,
 } from 'lucide-react'
 
 type ScoreRecord = { score: number; recorded_at: string }
+type ProfileAnalysis = { score: number; improvements: string[]; analysed_at: string }
+
+const LS_KEY_PREFIX = 'plAnalysis_'
+
+function timeAgo(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime()
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
 
 function LineChart({ data }: { data: number[] }) {
   if (data.length === 0) return (
@@ -67,6 +80,9 @@ export default function AnalyticsPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<ProfileAnalysis | null>(null)
+  const [analysing, setAnalysing] = useState(false)
+  const [analysisMsg, setAnalysisMsg] = useState<string | null>(null)
 
   async function fetchData(uid: string) {
     const [scoresRes, postsRes] = await Promise.all([
@@ -75,6 +91,60 @@ export default function AnalyticsPage() {
     ])
     setScores(scoresRes.data || [])
     setPosts(postsRes.data || [])
+  }
+
+  const fetchAnalysis = useCallback(async (uid: string, forceRefresh = false) => {
+    const lsKey = LS_KEY_PREFIX + uid
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(lsKey)
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as ProfileAnalysis
+          setAnalysis(parsed)
+          return
+        } catch { /* ignore bad cache */ }
+      }
+    }
+    // Load from DB (GET)
+    try {
+      const res = await fetch('/api/profile/analyse')
+      if (res.ok) {
+        const data = await res.json()
+        const latest = data?.analyses?.[0]
+        if (latest) {
+          setAnalysis(latest)
+          localStorage.setItem(lsKey, JSON.stringify(latest))
+          return
+        }
+      }
+    } catch { /* non-fatal */ }
+  }, [])
+
+  async function runFetchAnalysis() {
+    if (!userId || analysing) return
+    setAnalysing(true)
+    setAnalysisMsg(null)
+    try {
+      const res = await fetch('/api/profile/analyse', { method: 'POST' })
+      const data = await res.json()
+      if (res.status === 429) {
+        setAnalysisMsg(data.error || 'Limit reached — try again later.')
+        return
+      }
+      if (!res.ok || data.error) {
+        setAnalysisMsg(data.error || 'Analysis failed. Please try again.')
+        return
+      }
+      const analysisResult: ProfileAnalysis = { ...data, analysed_at: new Date().toISOString() }
+      setAnalysis(analysisResult)
+      localStorage.setItem(LS_KEY_PREFIX + userId, JSON.stringify(analysisResult))
+      setAnalysisMsg(null)
+    } catch {
+      setAnalysisMsg('Analysis failed. Please try again.')
+    } finally {
+      setAnalysing(false)
+      setTimeout(() => setAnalysisMsg(null), 8000)
+    }
   }
 
   useEffect(() => {
@@ -89,7 +159,10 @@ export default function AnalyticsPage() {
         setPlan(profile?.plan || 'starter')
         if (profile?.plan === 'starter') { if (!cancelled) setLoading(false); return }
         setUserId(user.id)
-        await fetchData(user.id)
+        await Promise.all([
+          fetchData(user.id),
+          fetchAnalysis(user.id),
+        ])
         const lastScore = (await supabase.from('linkedin_scores').select('recorded_at').eq('user_id', user.id).order('recorded_at', { ascending: false }).limit(1)).data?.[0]
         const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
         if (!lastScore || new Date(lastScore.recorded_at).getTime() < oneDayAgo) {
@@ -99,7 +172,7 @@ export default function AnalyticsPage() {
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [fetchAnalysis])
 
   async function syncFromLinkedIn() {
     if (!userId) return
@@ -189,7 +262,7 @@ export default function AnalyticsPage() {
     reactions: avgEngagement,
     impressions: totalImpressions > 0 ? totalImpressions.toLocaleString('en-IN') : '–',
     posts: posts.length,
-    score: scores[scores.length - 1]?.score ?? '–',
+    score: analysis?.score ?? scores[scores.length - 1]?.score ?? '–',
   }
   const medalColors = ['#f59e0b', '#94a3b8', '#d97706']
 
@@ -202,23 +275,84 @@ export default function AnalyticsPage() {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>// your LinkedIn performance at a glance</p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <button
-            onClick={syncFromLinkedIn}
-            disabled={syncing}
-            className="flex items-center gap-1.5 transition-all hover:opacity-80"
-            style={{
-              border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '7px 14px',
-              fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', background: 'var(--surface)',
-              opacity: syncing ? 0.6 : 1,
-            }}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : 'Sync LinkedIn'}
-          </button>
-          {syncMsg && <p style={{ fontSize: 12, color: 'var(--ink-4)' }}>{syncMsg}</p>}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={runFetchAnalysis}
+              disabled={analysing}
+              className="flex items-center gap-1.5 transition-all hover:opacity-80"
+              style={{
+                border: '1px solid var(--pl-accent)', borderRadius: 'var(--r-sm)', padding: '7px 14px',
+                fontSize: 13, fontWeight: 500, color: 'var(--pl-accent)', background: 'var(--pl-accent-soft)',
+                opacity: analysing ? 0.6 : 1,
+              }}
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${analysing ? 'animate-pulse' : ''}`} />
+              {analysing ? 'Analysing…' : 'Fetch Profile Analytics'}
+            </button>
+            <button
+              type="button"
+              onClick={syncFromLinkedIn}
+              disabled={syncing}
+              className="flex items-center gap-1.5 transition-all hover:opacity-80"
+              style={{
+                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '7px 14px',
+                fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', background: 'var(--surface)',
+                opacity: syncing ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing…' : 'Sync LinkedIn'}
+            </button>
+          </div>
+          {(analysisMsg || syncMsg) && (
+            <p style={{ fontSize: 12, color: 'var(--ink-4)', textAlign: 'right' }}>
+              {analysisMsg || syncMsg}
+            </p>
+          )}
+          {analysis?.analysed_at && !analysisMsg && (
+            <p style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', textAlign: 'right' }}>
+              profile last refreshed {timeAgo(analysis.analysed_at)}
+            </p>
+          )}
         </div>
       </div>
+
+      {/* Profile Analysis Card */}
+      {analysis && (
+        <div className="mb-5" style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: '18px 20px' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>Profile Analysis</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+                // AI-powered · refreshed {timeAgo(analysis.analysed_at)}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', border: '4px solid var(--pl-accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.03em' }}>{analysis.score}</span>
+              </div>
+            </div>
+          </div>
+          {analysis.improvements?.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {analysis.improvements.slice(0, 4).map((tip, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.45 }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%', flexShrink: 0, marginTop: 4,
+                    background: i < 2 ? 'var(--pl-accent)' : '#f59e0b',
+                  }} />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Stat grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-5">

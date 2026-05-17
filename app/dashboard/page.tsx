@@ -159,7 +159,8 @@ function DashboardContent() {
   const [reanalysing, setReanalysing] = useState(false)
   const [loading,     setLoading]     = useState(true)
   const [monthStats,  setMonthStats]  = useState({ generated: 0, scheduled: 0, draft: 0, needsApproval: 0 })
-  const [user,        setUser]        = useState<{ linkedin_name?: string; linkedin_picture?: string } | null>(null)
+  const [user,        setUser]        = useState<{ id?: string; linkedin_name?: string; linkedin_picture?: string } | null>(null)
+  const [userId,      setUserId]      = useState<string | null>(null)
 
   useEffect(() => {
     if (upgraded) toast.success('Subscription activated! Welcome to the plan.')
@@ -173,7 +174,7 @@ function DashboardContent() {
         if (!meRes.ok) { window.location.href = '/'; return }
         const { user: u, profile: p } = await meRes.json()
         if (!p || cancelled) return
-        if (!cancelled) { setProfile(p); setUser(u) }
+        if (!cancelled) { setProfile(p); setUser(u); setUserId(u?.id ?? null) }
 
         const now = new Date()
         const createdMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -215,7 +216,9 @@ function DashboardContent() {
         showUpgradeModal({ feature: data.feature, plan: data.plan, used: data.used, limit: data.limit }); return
       }
       if (data.error) { toast.error('Analysis failed: ' + data.error); return }
-      setAnalysis({ ...data, analysed_at: new Date().toISOString() })
+      const analysisResult = { ...data, analysed_at: new Date().toISOString() }
+      setAnalysis(analysisResult)
+      if (userId) localStorage.setItem('plAnalysis_' + userId, JSON.stringify(analysisResult))
       toast.success('Profile analysed! Score: ' + data.score + '/100')
     } catch {
       toast.error('Failed to analyse profile.')
@@ -450,6 +453,7 @@ function DashboardContent() {
           )}
 
           <button
+            type="button"
             onClick={handleReanalyse}
             disabled={reanalysing}
             className="w-full py-2 px-3 rounded-lg text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-opacity disabled:opacity-60"
