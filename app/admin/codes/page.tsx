@@ -38,6 +38,7 @@ export default function AccessCodesPage() {
   }
 
   useEffect(() => {
+    document.title = 'Access Codes — PersonaLink Admin'
     fetch('/api/admin/codes')
       .then(r => r.json())
       .then(d => { setCodes(d.codes || []); setLoading(false) })

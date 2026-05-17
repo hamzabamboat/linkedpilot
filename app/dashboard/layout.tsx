@@ -507,6 +507,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/dashboard':              'Dashboard — PersonaLink',
+      '/dashboard/generate':     'Generate Post — PersonaLink',
+      '/dashboard/posts':        'My Posts — PersonaLink',
+      '/dashboard/calendar':     'Calendar — PersonaLink',
+      '/dashboard/story-bank':   'Story Bank — PersonaLink',
+      '/dashboard/analytics':    'Analytics — PersonaLink',
+      '/dashboard/suggestions':  'Trending Ideas — PersonaLink',
+      '/dashboard/upload':       'Image Library — PersonaLink',
+      '/dashboard/profile':      'Voice & Profile — PersonaLink',
+      '/dashboard/settings':     'Settings — PersonaLink',
+      '/dashboard/upgrade':      'Upgrade — PersonaLink',
+    }
+    document.title = titles[pathname] ?? 'PersonaLink'
+  }, [pathname])
+
   const plan = profile?.plan || 'starter'
   const sidebarProps = { user, profile, plan, pathname }
 

@@ -95,6 +95,7 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
+    document.title = 'Admin Dashboard — PersonaLink'
     loadData()
 
     fetch('/api/admin/metrics')

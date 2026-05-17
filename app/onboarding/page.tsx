@@ -53,6 +53,8 @@ export default function OnboardingPage() {
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
 
+  useEffect(() => { document.title = 'Getting Started — PersonaLink' }, [])
+
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
     if (match) setUserCountry(match[1])

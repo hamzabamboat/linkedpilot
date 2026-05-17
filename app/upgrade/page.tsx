@@ -24,6 +24,8 @@ export default function UpgradePage() {
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
 
+  useEffect(() => { document.title = 'Upgrade — PersonaLink' }, [])
+
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
     if (match) setUserCountry(match[1])

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AdminLoginPage() {
+  useEffect(() => { document.title = 'Admin Login — PersonaLink' }, [])
   const [secret, setSecret] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
