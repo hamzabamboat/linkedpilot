@@ -15,14 +15,19 @@ export async function POST(request: NextRequest) {
     const razorpayPlanId = PLAN_IDS[planId]
     if (!razorpayPlanId) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
-    // Block if already on an active or trialing subscription
+    // Block if already on an active or non-expired trialing subscription
     const { data: existingSub } = await supabaseAdmin
       .from('subscriptions')
-      .select('razorpay_subscription_id, status')
+      .select('razorpay_subscription_id, status, trial_ends_at')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (existingSub?.status === 'active' || existingSub?.status === 'trial' || existingSub?.status === 'trialing') {
+    const trialStillActive =
+      (existingSub?.status === 'trial' || existingSub?.status === 'trialing') &&
+      !!existingSub.trial_ends_at &&
+      new Date(existingSub.trial_ends_at) > new Date()
+
+    if (existingSub?.status === 'active' || trialStillActive) {
       return NextResponse.json({ error: 'Already subscribed' }, { status: 409 })
     }
 
