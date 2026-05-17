@@ -88,7 +88,17 @@ export async function middleware(request: NextRequest) {
       .select('subscription_status')
       .eq('id', userId)
       .single()
-    if (userRow?.subscription_status === 'access_code') {
+    if (!userRow) {
+      // Stale/invalid session cookie — clear it and let them see the public page
+      // Without this, the middleware would redirect to /upgrade, and the upgrade
+      // page would redirect back to /, creating an infinite redirect loop.
+      const res = NextResponse.next()
+      res.cookies.delete('session_user_id')
+      res.cookies.delete('sub_status')
+      res.cookies.delete('used_code')
+      return res
+    }
+    if (userRow.subscription_status === 'access_code') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     const { data: subRow } = await supabaseQuick
@@ -126,6 +136,11 @@ export async function middleware(request: NextRequest) {
   // sub_status is pre-set to 'active' when switching to a client, so let it through
   const agencyMode = request.cookies.get('agency_mode')?.value
   if (agencyMode && userId) {
+    return NextResponse.next()
+  }
+
+  // Bypass subscription check in local development
+  if (process.env.NODE_ENV === 'development' && userId) {
     return NextResponse.next()
   }
 

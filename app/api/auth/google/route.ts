@@ -2,8 +2,15 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function GET() {
-  const clientId = process.env.GOOGLE_CLIENT_ID!
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
+  const clientId = process.env.GOOGLE_CLIENT_ID
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+
+  if (!clientId || !appUrl) {
+    console.error('[google/auth] missing GOOGLE_CLIENT_ID or NEXT_PUBLIC_APP_URL')
+    return NextResponse.redirect(`${appUrl ?? '/'}?error=server_misconfigured`)
+  }
+
+  const redirectUri = `${appUrl}/api/auth/google/callback`
   const state = crypto.randomUUID()
 
   const cookieStore = await cookies()
@@ -21,6 +28,8 @@ export async function GET() {
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('scope', 'openid email profile')
   authUrl.searchParams.set('state', state)
+  // Always show account picker — prevents silent auto-selection on re-auth
+  authUrl.searchParams.set('prompt', 'select_account')
 
   return NextResponse.redirect(authUrl.toString())
 }

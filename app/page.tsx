@@ -437,9 +437,29 @@ function HomeContent() {
             </h1>
 
             {/* Lede */}
-            <p style={{ fontSize: 'clamp(15px,1.4vw,17px)', color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 32, maxWidth: 480 }}>
-              PersonaLink studies how you actually write — your rhythm, your vocabulary, the way you start sentences — and produces posts that ship at the right time, in the right voice. You stay the author. We handle the cadence.
+            <p style={{ fontSize: 'clamp(15px,1.4vw,17px)', color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 20, maxWidth: 480 }}>
+              PersonaLink studies how you actually write — your rhythm, your vocabulary, the way you start sentences — then generates posts in your exact voice, schedules them, and shows you what resonates. One tool, full loop.
             </p>
+
+            {/* Workflow pill strip */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 32, flexWrap: 'wrap' }}>
+              {[
+                { label: 'Generate', color: 'var(--pl-accent)' },
+                { label: 'Post', color: 'var(--pl-accent)' },
+                { label: 'Analyse', color: 'var(--pl-accent)' },
+              ].map((item, i) => (
+                <span key={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    fontFamily: 'var(--f-mono)', fontSize: 12, fontWeight: 600,
+                    color: item.color, background: 'var(--pl-accent-soft)',
+                    border: '1px solid var(--pl-accent)', borderRadius: 'var(--r-pill)',
+                    padding: '4px 12px', letterSpacing: '0.03em',
+                  }}>{item.label}</span>
+                  {i < 2 && <span style={{ color: 'var(--ink-4)', fontSize: 12, fontFamily: 'var(--f-mono)' }}>→</span>}
+                </span>
+              ))}
+              <span style={{ fontSize: 12.5, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', marginLeft: 4 }}>all in one place</span>
+            </div>
 
             {/* Account type toggle */}
             <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: 3, gap: 2, marginBottom: 16 }}>
@@ -565,6 +585,79 @@ function HomeContent() {
           </div>
         </section>
       </FadeUp>
+
+      {/* ── Workflow Strip: Generate → Post → Analyse ── */}
+      <section style={{ background: 'var(--bg)', borderTop: '1px solid var(--line)', padding: 'clamp(56px,8vw,88px) var(--pad)' }}>
+        <div style={{ maxWidth: 'var(--max)', margin: '0 auto' }}>
+          <FadeUp>
+            <p style={{ textAlign: 'center', fontFamily: 'var(--f-mono)', fontSize: 11.5, letterSpacing: '0.08em', color: 'var(--ink-4)', marginBottom: 52, textTransform: 'uppercase' }}>
+              The full loop — in one place
+            </p>
+          </FadeUp>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'clamp(2px,3vw,2px)', position: 'relative' }}>
+            {[
+              {
+                step: '01',
+                action: 'Generate',
+                desc: 'Drop a thought, a voice note, or a topic. AI drafts a post in your exact rhythm and vocabulary — not "professional AI" voice.',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28, color: 'var(--pl-accent)' }}>
+                    <path d="M12 19l7-7-7-7" /><path d="M5 12h14" />
+                    <circle cx="5" cy="12" r="2" fill="var(--pl-accent)" stroke="none" />
+                  </svg>
+                ),
+              },
+              {
+                step: '02',
+                action: 'Post',
+                desc: 'Auto-publishes at peak times, or lands in your inbox for a one-tap approve. Your cadence, on autopilot.',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28, color: 'var(--pl-accent)' }}>
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M8 2v4M16 2v4M3 10h18" />
+                    <path d="M8 14h2M14 14h2M8 18h2" />
+                  </svg>
+                ),
+              },
+              {
+                step: '03',
+                action: 'Analyse',
+                desc: 'See impressions, engagement velocity, and which topics land. Know what to double down on — and what to skip.',
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 28, height: 28, color: 'var(--pl-accent)' }}>
+                    <path d="M3 17l4-4 4 4 4-6 4 3" />
+                    <path d="M3 21h18" />
+                  </svg>
+                ),
+              },
+            ].map((item, i) => (
+              <FadeUp key={item.step} delay={i * 0.1}>
+                <div style={{
+                  padding: 'clamp(24px,4vw,36px)',
+                  borderLeft: i > 0 ? '1px solid var(--line)' : 'none',
+                  position: 'relative',
+                }}>
+                  {i > 0 && (
+                    <span style={{
+                      position: 'absolute', top: '50%', left: -14, transform: 'translateY(-50%)',
+                      fontFamily: 'var(--f-mono)', fontSize: 18, color: 'var(--pl-accent)', opacity: 0.5,
+                      display: 'none',
+                    }} aria-hidden="true">→</span>
+                  )}
+                  <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', marginBottom: 16, letterSpacing: '0.04em' }}>{item.step}</div>
+                  <div style={{ marginBottom: 14 }}>{item.icon}</div>
+                  <h3 style={{
+                    fontFamily: 'var(--f-sans)', fontWeight: 700,
+                    fontSize: 'clamp(22px,2.8vw,30px)', color: 'var(--ink)',
+                    letterSpacing: '-0.035em', lineHeight: 1.1, marginBottom: 12,
+                  }}>{item.action}</h3>
+                  <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 280 }}>{item.desc}</p>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── Kinetic Words ── */}
       <section style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg)', padding: 'clamp(60px,10vw,120px) var(--pad)', textAlign: 'center' }}>
@@ -857,28 +950,32 @@ function HomeContent() {
               </div>
             </FadeUp>
 
-            {/* Card 6: LinkedIn Score — span 3 */}
+            {/* Card 6: Post Analytics */}
             <FadeUp className="col-span-6 md:col-span-2" delay={0.18}>
               <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 28, height: '100%', boxShadow: 'var(--sh-1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-                  <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', padding: '4px 10px', background: 'var(--pl-accent-soft)', borderRadius: 'var(--r-pill)', border: '1px solid var(--pl-accent)' }}>LinkedIn Score</span>
+                  <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--pl-accent)', padding: '4px 10px', background: 'var(--pl-accent-soft)', borderRadius: 'var(--r-pill)', border: '1px solid var(--pl-accent)' }}>Post analytics</span>
                   <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>06</span>
                 </div>
                 <h3 style={{ fontWeight: 600, fontSize: 18, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 8 }}>
-                  Track profile strength <em>like a&nbsp;metric, not a&nbsp;feeling.</em>
+                  See what lands. <em>Double down on it.</em>
                 </h3>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65, marginBottom: 24 }}>Engagement velocity, consistency, audience growth — all rolled into one number that actually moves.</p>
-                {/* Score ring */}
-                <div style={{ position: 'relative', width: 100, height: 100 }}>
-                  <svg viewBox="0 0 120 120" style={{ width: '100%', height: '100%' }}>
-                    <circle cx="60" cy="60" r="48" fill="none" stroke="var(--surface-3)" strokeWidth="10" />
-                    <circle cx="60" cy="60" r="48" fill="none" stroke="var(--pl-accent)" strokeWidth="10" strokeLinecap="round"
-                      strokeDasharray="301" strokeDashoffset="60" transform="rotate(-90 60 60)" />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <strong style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 }}>80</strong>
-                    <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>/ 100</span>
-                  </div>
+                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.65, marginBottom: 20 }}>Impressions, engagement rate, and topic patterns — so you always know what to write more of.</p>
+                {/* Mini analytics rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { label: 'Impressions this week', value: '4,218', delta: '+31%', color: '#10b981' },
+                    { label: 'Avg. engagement rate', value: '6.4%', delta: '+2.1pp', color: '#10b981' },
+                    { label: 'Top topic: Founder lessons', value: '', delta: '↑ trending', color: 'var(--pl-accent)' },
+                  ].map((row, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 2 ? '1px solid var(--line)' : 'none' }}>
+                      <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>{row.label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {row.value && <span style={{ fontFamily: 'var(--f-mono)', fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>{row.value}</span>}
+                        <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: row.color, background: i === 2 ? 'var(--pl-accent-soft)' : '#ecfdf5', border: `1px solid ${i === 2 ? 'var(--pl-accent)' : '#d1fae5'}`, borderRadius: 'var(--r-pill)', padding: '2px 8px' }}>{row.delta}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </FadeUp>
@@ -1319,10 +1416,12 @@ function HomeContent() {
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24, fontFamily: 'var(--f-mono)', fontSize: 11.5, fontWeight: 500, letterSpacing: '0.04em', color: 'rgba(255,255,255,.4)', padding: '6px 12px', border: '1px solid rgba(255,255,255,.12)', borderRadius: 'var(--r-xs)' }}>
               // Start
             </div>
-            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4.5vw,52px)', color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 32 }}>
-              Your audience is already there.<br />
-              <em style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'rgba(255,255,255,.75)' }}>Sound like you when you arrive.</em>
+            <h2 style={{ fontFamily: 'var(--f-sans)', fontWeight: 700, fontSize: 'clamp(28px,4.5vw,52px)', color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 16 }}>
+              Write once in your voice.<br />Post on schedule. See what lands.
             </h2>
+            <p style={{ fontSize: 'clamp(15px,1.3vw,17px)', color: 'rgba(255,255,255,.45)', lineHeight: 1.7, marginBottom: 32, maxWidth: 480, margin: '0 auto 32px' }}>
+              Generate, post, and analyse — <em style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'rgba(255,255,255,.65)' }}>all in one place.</em>
+            </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
               <button onClick={handleLinkedInAuth} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
@@ -1403,7 +1502,7 @@ const JSON_LD = {
   '@type': 'SoftwareApplication',
   name: 'PersonaLink',
   applicationCategory: 'BusinessApplication',
-  description: 'AI LinkedIn manager that generates posts in your voice and publishes automatically',
+  description: 'AI LinkedIn manager that generates posts in your voice, auto-publishes on schedule, and shows you what resonates — all in one place',
   url: 'https://personalink.in',
   offers: { '@type': 'AggregateOffer', lowPrice: '999', highPrice: '4999', priceCurrency: 'INR' },
   operatingSystem: 'Web',

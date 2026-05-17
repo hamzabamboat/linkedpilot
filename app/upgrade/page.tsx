@@ -24,17 +24,35 @@ export default function UpgradePage() {
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
 
+  useEffect(() => { document.title = 'Upgrade — PersonaLink' }, [])
+
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
     if (match) setUserCountry(match[1])
   }, [])
 
   useEffect(() => {
-    fetch('/api/me').then(r => r.json()).then(data => {
-      if (!data.user) { router.replace('/'); return }
-      setUser(data.user)
-      setLoading(false)
-    })
+    async function load() {
+      try {
+        const r = await fetch('/api/me')
+        if (r.status === 401) {
+          await fetch('/api/auth/logout', { method: 'POST' })
+          router.replace('/')
+          return
+        }
+        const data = await r.json()
+        if (!data.user) {
+          await fetch('/api/auth/logout', { method: 'POST' })
+          router.replace('/')
+          return
+        }
+        setUser(data.user)
+        setLoading(false)
+      } catch {
+        setLoading(false)
+      }
+    }
+    load()
   }, [router])
 
   const currencyInfo = getCurrency(userCountry)

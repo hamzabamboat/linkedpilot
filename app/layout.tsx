@@ -69,8 +69,8 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'PersonaLink — AI LinkedIn Manager | Auto-Post Without Interference',
-  description: 'PersonaLink is an AI LinkedIn manager that generates posts in your voice and publishes automatically. The best LinkedIn profile manager for founders, consultants and professionals in India.',
+  title: 'PersonaLink — Generate, Post & Analyse LinkedIn Content in Your Voice',
+  description: 'PersonaLink generates LinkedIn posts in your exact voice, auto-publishes them on schedule, and shows you what\'s working — all in one place. Built for founders, consultants and professionals in India.',
   keywords: [
     'AI LinkedIn manager',
     'LinkedIn profile manager',
@@ -87,6 +87,10 @@ export const metadata: Metadata = {
     'LinkedIn management software',
     'automated LinkedIn posting',
     'LinkedIn content automation India',
+    'LinkedIn content analytics',
+    'all in one LinkedIn tool',
+    'LinkedIn post scheduler India',
+    'LinkedIn growth analytics',
   ],
   authors: [{ name: 'PersonaLink' }],
   creator: 'PersonaLink',
@@ -113,14 +117,14 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     url: 'https://personalink.in',
     siteName: 'PersonaLink',
-    title: 'PersonaLink — AI LinkedIn Manager | Posts Without Interference',
-    description: 'Generate LinkedIn posts in your exact voice. Schedule and auto-publish without lifting a finger. Used by 100+ Indian professionals.',
+    title: 'PersonaLink — Generate, Post & Analyse LinkedIn Content in Your Voice',
+    description: 'Generate LinkedIn posts in your exact voice, auto-publish on schedule, and see what resonates — all in one place. Used by 500+ Indian professionals.',
     images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'PersonaLink AI LinkedIn Manager' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PersonaLink — AI LinkedIn Manager',
-    description: 'AI generates LinkedIn posts in your voice and posts automatically. No interference needed.',
+    title: 'PersonaLink — Generate, Post & Analyse LinkedIn Content',
+    description: 'Generate LinkedIn posts in your voice, auto-publish on schedule, and see what resonates — all in one place.',
     images: ['/og-image.png'],
   },
   alternates: {

@@ -485,18 +485,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isOnline = useOnlineStatus()
 
   useEffect(() => {
-    fetch('/api/me').then(r => {
-      if (!r.ok) { router.push('/'); return r.json() }
-      return r.json()
-    }).then(d => {
-      if (d?.user)         setUser(d.user)
-      if (d?.profile)      setProfile(d.profile)
-      if (d?.subscription) setSubscription(d.subscription)
-      if (d?.agencyMode)   setAgencyMode(d.agencyMode)
-    }).catch(() => router.push('/'))
-  }, [])
+    async function load() {
+      try {
+        const r = await fetch('/api/me')
+        if (r.status === 401) {
+          await fetch('/api/auth/logout', { method: 'POST' })
+          router.push('/')
+          return
+        }
+        const d = await r.json()
+        if (d?.user)         setUser(d.user)
+        if (d?.profile)      setProfile(d.profile)
+        if (d?.subscription) setSubscription(d.subscription)
+        if (d?.agencyMode)   setAgencyMode(d.agencyMode)
+      } catch {
+        // Network error — stay on page, don't redirect (avoids loop when offline)
+      }
+    }
+    load()
+  }, [router])
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/dashboard':              'Dashboard — PersonaLink',
+      '/dashboard/generate':     'Generate Post — PersonaLink',
+      '/dashboard/posts':        'My Posts — PersonaLink',
+      '/dashboard/calendar':     'Calendar — PersonaLink',
+      '/dashboard/story-bank':   'Story Bank — PersonaLink',
+      '/dashboard/analytics':    'Analytics — PersonaLink',
+      '/dashboard/suggestions':  'Trending Ideas — PersonaLink',
+      '/dashboard/upload':       'Image Library — PersonaLink',
+      '/dashboard/profile':      'Voice & Profile — PersonaLink',
+      '/dashboard/settings':     'Settings — PersonaLink',
+      '/dashboard/upgrade':      'Upgrade — PersonaLink',
+    }
+    document.title = titles[pathname] ?? 'PersonaLink'
+  }, [pathname])
 
   const plan = profile?.plan || 'starter'
   const sidebarProps = { user, profile, plan, pathname }

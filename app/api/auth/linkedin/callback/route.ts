@@ -12,22 +12,28 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
 
+  // LinkedIn sends error before we can read the state cookie — clear it anyway
+  const clearState = (res: NextResponse) => {
+    res.cookies.delete('linkedin_oauth_state')
+    return res
+  }
+
   if (error) {
-    console.error('LinkedIn OAuth error:', error, errorDescription)
-    // error=access_denied usually means missing OIDC product in LinkedIn app
+    console.error('[linkedin/callback] LinkedIn error:', error, errorDescription)
+    // access_denied = user cancelled OR missing OIDC/Share products in LinkedIn app
     const reason = error === 'access_denied' ? 'scope_denied' : 'linkedin_denied'
-    return NextResponse.redirect(`${APP_URL}/?error=${reason}`)
+    return clearState(NextResponse.redirect(`${APP_URL}/?error=${reason}`))
   }
 
   // Verify state to prevent CSRF
   const storedState = request.cookies.get('linkedin_oauth_state')?.value
   if (!state || !storedState || state !== storedState) {
-    console.error('LinkedIn OAuth state mismatch')
-    return NextResponse.redirect(`${APP_URL}/?error=state_mismatch`)
+    console.error('[linkedin/callback] state mismatch — stored:', storedState, 'got:', state)
+    return clearState(NextResponse.redirect(`${APP_URL}/?error=state_mismatch`))
   }
 
   if (!code) {
-    return NextResponse.redirect(`${APP_URL}/?error=no_code`)
+    return clearState(NextResponse.redirect(`${APP_URL}/?error=no_code`))
   }
 
   try {
@@ -43,14 +49,22 @@ export async function GET(request: NextRequest) {
       }),
     })
 
+    if (!tokenResponse.ok) {
+      const body = await tokenResponse.text()
+      console.error('[linkedin/callback] token exchange failed:', tokenResponse.status, body)
+      throw new Error(`Token exchange HTTP ${tokenResponse.status}`)
+    }
+
     const tokenData = await tokenResponse.json()
     if (!tokenData.access_token) {
-      console.error('LinkedIn token error:', tokenData)
+      console.error('[linkedin/callback] no access_token in response:', tokenData)
       throw new Error('No access token returned')
     }
 
     const accessToken = tokenData.access_token
-    const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000)
+    // LinkedIn tokens expire in 60 days; fall back to that if expires_in is missing
+    const expiresInMs = (tokenData.expires_in ?? 5184000) * 1000
+    const expiresAt = new Date(Date.now() + expiresInMs)
 
     const profileResponse = await fetch('https://api.linkedin.com/v2/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -164,7 +178,10 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('linkedin_oauth_state')
     return response
   } catch (err) {
-    console.error('LinkedIn OAuth callback error:', err)
-    return NextResponse.redirect(`${APP_URL}/?error=oauth_failed`)
+    console.error('[linkedin/callback] unhandled error:', err)
+    const res = NextResponse.redirect(`${APP_URL}/?error=oauth_failed`)
+    res.cookies.delete('linkedin_oauth_state')
+    res.cookies.delete('agency_oauth_client_user_id')
+    return res
   }
 }

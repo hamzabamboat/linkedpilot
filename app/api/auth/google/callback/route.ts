@@ -9,22 +9,34 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
+  const clearState = (res: NextResponse) => {
+    res.cookies.delete('google_oauth_state')
+    return res
+  }
+
   if (error) {
     console.error('[google/callback] OAuth error:', error)
-    return NextResponse.redirect(`${APP_URL}/?error=google_denied`)
+    return clearState(NextResponse.redirect(`${APP_URL}/?error=google_denied`))
   }
 
   const storedState = request.cookies.get('google_oauth_state')?.value
   if (!state || !storedState || state !== storedState) {
-    console.error('[google/callback] state mismatch')
-    return NextResponse.redirect(`${APP_URL}/?error=state_mismatch`)
+    console.error('[google/callback] state mismatch — stored:', storedState, 'got:', state)
+    return clearState(NextResponse.redirect(`${APP_URL}/?error=state_mismatch`))
   }
 
   if (!code) {
-    return NextResponse.redirect(`${APP_URL}/?error=no_code`)
+    return clearState(NextResponse.redirect(`${APP_URL}/?error=no_code`))
   }
 
   try {
+    const clientId = process.env.GOOGLE_CLIENT_ID
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+    if (!clientId || !clientSecret) {
+      console.error('[google/callback] GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not set')
+      throw new Error('Google OAuth is not configured on this server')
+    }
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -32,14 +44,20 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         code,
         redirect_uri: `${APP_URL}/api/auth/google/callback`,
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        client_id: clientId,
+        client_secret: clientSecret,
       }),
     })
 
+    if (!tokenResponse.ok) {
+      const body = await tokenResponse.text()
+      console.error('[google/callback] token exchange failed:', tokenResponse.status, body)
+      throw new Error(`Token exchange HTTP ${tokenResponse.status}`)
+    }
+
     const tokenData = await tokenResponse.json()
     if (!tokenData.access_token) {
-      console.error('[google/callback] token error:', tokenData)
+      console.error('[google/callback] no access_token in response:', tokenData)
       throw new Error('No access token from Google')
     }
 
@@ -121,7 +139,9 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('google_oauth_state')
     return response
   } catch (err) {
-    console.error('[google/callback] error:', err)
-    return NextResponse.redirect(`${APP_URL}/?error=google_failed`)
+    console.error('[google/callback] unhandled error:', err)
+    const res = NextResponse.redirect(`${APP_URL}/?error=google_failed`)
+    res.cookies.delete('google_oauth_state')
+    return res
   }
 }

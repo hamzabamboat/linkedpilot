@@ -33,7 +33,8 @@ export async function GET(
   authUrl.searchParams.set('client_id', process.env.LINKEDIN_CLIENT_ID!)
   authUrl.searchParams.set('redirect_uri', `${APP_URL}/api/auth/linkedin/callback`)
   authUrl.searchParams.set('state', state)
-  authUrl.searchParams.set('scope', 'openid profile email w_member_social r_member_social')
+  // r_member_social is deprecated by LinkedIn — requesting it causes access_denied
+  authUrl.searchParams.set('scope', 'openid profile email w_member_social')
 
   const response = NextResponse.redirect(authUrl.toString())
   const cookieOpts = {

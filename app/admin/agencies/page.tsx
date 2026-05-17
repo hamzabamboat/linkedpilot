@@ -58,6 +58,7 @@ export default function AdminAgenciesPage() {
     }
   }, [])
 
+  useEffect(() => { document.title = 'Agencies — PersonaLink Admin' }, [])
   useEffect(() => { load() }, [load])
 
   async function handleCreate(e: React.FormEvent) {
