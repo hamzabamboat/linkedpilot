@@ -108,10 +108,14 @@ export async function POST(request: NextRequest) {
   // Get recent posts for deduplication — last 30 for richer topic awareness
   const { data: recentPostRows } = await supabaseAdmin
     .from('posts')
-    .select('generation_prompt, topics_extracted, content_pillar')
+    .select('content, generation_prompt, topics_extracted, content_pillar')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(30)
+
+  const recentContents: string[] = (recentPostRows || [])
+    .map(p => p.content)
+    .filter(Boolean) as string[]
 
   const recentTopics = (recentPostRows || [])
     .flatMap(p => {
