@@ -220,14 +220,19 @@ export async function middleware(request: NextRequest) {
 
   const { data: sub } = await supabase
     .from('subscriptions')
-    .select('status, trial_ends_at')
+    .select('status, trial_ends_at, updated_at')
     .eq('user_id', userId)
     .maybeSingle()
 
   const hasActiveSub = sub?.status === 'active'
   const isTrial = (sub?.status === 'trial' || sub?.status === 'trialing') && !!sub.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
+  // Allow brief post-checkout window while the Dodo payment webhook is in flight
+  const isPaymentPending =
+    sub?.status === 'created' &&
+    !!sub.updated_at &&
+    Date.now() - new Date(sub.updated_at).getTime() < 10 * 60 * 1000
 
-  if (!hasActiveSub && !isTrial) {
+  if (!hasActiveSub && !isTrial && !isPaymentPending) {
     return NextResponse.redirect(new URL('/upgrade', request.url))
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendWelcomeEmail } from '@/lib/email'
 import { runProfileAnalysis } from '@/lib/profile-analyzer'
+import { TRIAL_DAYS } from '@/lib/razorpay'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
@@ -138,10 +139,66 @@ export async function GET(request: NextRequest) {
     // Run profile analysis in background (don't await — shouldn't block redirect)
     runProfileAnalysis(user.id).catch(console.error)
 
-    // Check existing subscription to pre-populate the sub_status cookie
+    // Upsert the personal linkedin_account record.
+    // Grant a trial only if this user has no other accounts yet (first account ever).
+    const { count: existingAccountCount } = await supabaseAdmin
+      .from('linkedin_accounts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    const isFirstAccount = (existingAccountCount ?? 0) === 0
+    const personalAccountStatus = isFirstAccount ? 'trialing' : 'inactive'
+
+    await supabaseAdmin
+      .from('linkedin_accounts')
+      .upsert(
+        {
+          user_id: user.id,
+          account_type: 'personal',
+          linkedin_id: profile.sub,
+          name: profile.name,
+          picture_url: profile.picture ?? null,
+          // Only set status on insert; don't overwrite an existing active/paid status
+          subscription_status: personalAccountStatus,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,linkedin_id',
+          ignoreDuplicates: true, // preserve existing subscription_status on re-login
+        }
+      )
+
+    // Fetch the account row to get its ID for the subscriptions table
+    const { data: accountRow } = await supabaseAdmin
+      .from('linkedin_accounts')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('linkedin_id', profile.sub)
+      .single()
+
+    // For new users: create a trial subscription row so the middleware can
+    // verify trial validity via trial_ends_at. Without this row the user
+    // gets redirected to /upgrade immediately after sign-up.
+    if (isFirstAccount && accountRow) {
+      const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+      await supabaseAdmin
+        .from('subscriptions')
+        .upsert(
+          {
+            user_id: user.id,
+            account_id: accountRow.id,
+            status: 'trialing',
+            trial_ends_at: trialEndsAt.toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id', ignoreDuplicates: true }
+        )
+    }
+
+    // Check existing subscription to set the sub_status cookie
     const { data: sub } = await supabaseAdmin
       .from('subscriptions')
-      .select('status')
+      .select('status, trial_ends_at')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -172,7 +229,11 @@ export async function GET(request: NextRequest) {
     }
     if (sub?.status === 'active') {
       response.cookies.set('sub_status', 'active', { ...cookieOpts, maxAge: 60 * 60 })
-    } else if (sub?.status === 'trial' || sub?.status === 'trialing') {
+    } else if (
+      (sub?.status === 'trial' || sub?.status === 'trialing') &&
+      sub.trial_ends_at &&
+      new Date(sub.trial_ends_at) > new Date()
+    ) {
       response.cookies.set('sub_status', 'trial', { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
     }
     response.cookies.delete('linkedin_oauth_state')

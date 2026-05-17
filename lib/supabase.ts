@@ -194,6 +194,22 @@ export type PostImage = {
   used_in_post_ids: string[] | null
 }
 
+export type LinkedInAccount = {
+  id: string
+  user_id: string
+  account_type: 'personal' | 'company'
+  linkedin_id: string
+  name: string | null
+  picture_url: string | null
+  subscription_status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled'
+  dodo_subscription_id: string | null
+  plan: 'starter' | 'standard' | 'pro' | null
+  posts_limit: number
+  posts_used_this_month: number
+  created_at: string
+  updated_at: string
+}
+
 export type Agency = {
   id: string
   name: string
