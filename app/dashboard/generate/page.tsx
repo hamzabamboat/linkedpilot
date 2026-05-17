@@ -4,15 +4,9 @@ import { useState, useRef, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, StoryBank, Post } from '@/lib/supabase'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { PostCard, PostCardSkeleton } from '@/components/post-card'
-import { Eyebrow } from '@/components/eyebrow'
 import { ImageSelector } from '@/components/image-selector'
 import { PostImage } from '@/lib/supabase'
-import { ConcentricRings } from '@/components/concentric-rings'
 import {
   Loader2, Mic, MicOff, FolderOpen, Sparkles, CalendarClock, Mail,
   BookOpen, Lock, Zap, Check, Save, ArrowLeft, ImageIcon, Upload, X,
@@ -51,55 +45,22 @@ function estimateEtaSecs(postsLimit: number): number {
 
 type Tab = 'prompt' | 'voice' | 'story' | 'bulk'
 
-/* ── Reusable card wrapper ────────────────────────────────── */
-function PanelCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={className}
-      style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', padding: 24, boxShadow: 'var(--sh-1)' }}
-    >
-      {children}
-    </div>
-  )
-}
-
-/* ── Generate button ─────────────────────────────────────── */
-function GenerateButton({ loading, disabled, onClick, loadingMsg }: { loading: boolean; disabled: boolean; onClick: () => void; loadingMsg?: string }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={loading || disabled}
-      className="w-full h-11 flex items-center justify-center gap-2 text-[14px] font-semibold text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-5"
-      style={{ background: 'var(--pl-accent)', fontFamily: 'var(--f-sans)', boxShadow: 'var(--sh-blue)' }}
-    >
-      {loading
-        ? <><Loader2 size={15} className="animate-spin" /> {loadingMsg || 'Generating...'}</>
-        : <><Sparkles size={15} /> Generate Posts</>
-      }
-    </button>
-  )
-}
-
 /* ── Upgrade prompt ──────────────────────────────────────── */
 function UpgradePrompt({ feature, minPlan, icon: Icon }: { feature: string; minPlan: string; icon: React.ElementType }) {
   return (
-    <div className="text-center py-12">
-      <div className="relative inline-block mb-5">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: 'var(--surface-3)' }}>
-          <Icon className="w-8 h-8" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+    <div className="db-empty">
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ width: 56, height: 56, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-3)' }}>
+          <Icon style={{ width: 26, height: 26, color: 'var(--ink-4)' }} strokeWidth={1.5} />
         </div>
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center shadow-sm">
-          <Lock size={11} className="text-white" strokeWidth={2.5} />
+        <div style={{ position: 'absolute', bottom: -4, right: -4, width: 22, height: 22, borderRadius: '50%', background: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Lock size={10} color="#fff" strokeWidth={2.5} />
         </div>
       </div>
-      <div className="text-lg font-bold mb-2" style={{ color: 'var(--ink)' }}>{feature}</div>
-      <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--ink-3)' }}>
-        This feature is available on <strong style={{ color: 'var(--ink-2)' }}>{minPlan}</strong> and above.
-      </p>
-      <Link href="/dashboard/settings?tab=plan"
-        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90"
-        style={{ background: 'var(--pl-accent)' }}>
-        <Zap size={14} /> Upgrade Plan
+      <strong>{feature}</strong>
+      <span>This feature is available on <strong style={{ color: 'var(--ink-2)' }}>{minPlan}</strong> and above.</span>
+      <Link href="/dashboard/settings?tab=plan" className="btn-dash btn-dash--primary" style={{ marginTop: 4 }}>
+        <Zap size={13} /> Upgrade Plan
       </Link>
     </div>
   )
@@ -125,38 +86,35 @@ function ImageUploadSection({ onUpload }: { onUpload: (url: string) => void }) {
   }
 
   return (
-    <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
-      <div className="text-[11px] mb-3 flex items-center gap-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>
-        <ImageIcon size={11} /> // add image
-      </div>
+    <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, marginTop: 4 }}>
+      <label className="db-label"><ImageIcon size={10} style={{ display: 'inline', marginRight: 4 }} />// add image</label>
       <div
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) uploadFile(f) }}
         onClick={() => fileInputRef.current?.click()}
-        className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all"
-        style={{ borderColor: dragOver ? 'var(--pl-accent)' : 'var(--line-2)', background: dragOver ? 'var(--pl-accent-soft)' : 'var(--bg-2)' }}
+        className="upload-drop"
+        style={{ minHeight: 100, borderColor: dragOver ? 'var(--accent)' : undefined, background: dragOver ? 'var(--accent-soft)' : undefined }}
       >
         {uploading
-          ? <div className="flex flex-col items-center gap-2"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--ink-4)' }} /><div className="text-sm" style={{ color: 'var(--ink-4)' }}>Uploading...</div></div>
-          : <div className="flex flex-col items-center gap-2">
-              <Upload size={20} style={{ color: 'var(--ink-4)' }} />
-              <div className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Drop image or click to upload</div>
-              <div className="text-[11px]" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>JPG · PNG · GIF · WebP — 5 MB max</div>
-            </div>
+          ? <><Loader2 size={18} className="animate-spin" style={{ color: 'var(--ink-4)' }} /><span style={{ fontSize: 13, color: 'var(--ink-4)' }}>Uploading...</span></>
+          : <><Upload size={18} style={{ color: 'var(--ink-4)' }} /><span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Drop image or click to upload</span><span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>JPG · PNG · GIF · WebP — 5 MB max</span></>
         }
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden"
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f); e.target.value = '' }} />
       </div>
       {uploadedUrls.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
           {uploadedUrls.map((url, i) => (
-            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden group" style={{ border: '1px solid var(--line)' }}>
+            <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)' }}
+              className="group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="w-full h-full object-cover" />
+              <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <button onClick={e => { e.stopPropagation(); setUploadedUrls(prev => prev.filter((_, j) => j !== i)) }}
-                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <X size={14} className="text-white" />
+                style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity .15s', border: 'none', cursor: 'pointer' }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '0')}>
+                <X size={13} color="#fff" />
               </button>
             </div>
           ))}
@@ -225,29 +183,28 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string
   }
 
   if (postsLimit === null || postsRemaining === null) {
-    return <div style={{ height: 80, background: 'var(--surface-3)', borderRadius: 'var(--r-md)' }} className="animate-pulse" />
+    return <div className="gen-card" style={{ height: 80, background: 'var(--surface-3)', animation: 'shimmer 1.5s infinite' }} />
   }
 
   if (loading) {
     const remainingSecs = Math.max(0, etaTotalSecs - elapsedSecs)
     const etaLabel = remainingSecs > 60 ? `~${Math.ceil(remainingSecs / 60)} min remaining` : remainingSecs > 5 ? `~${remainingSecs}s remaining` : 'Finishing up...'
     return (
-      <div className="fixed inset-0 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6" style={{ background: 'rgba(var(--surface), 0.95)' }}>
-        <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>Generating posts for {monthName}...</h2>
-        <p className="text-sm mb-3" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>{etaLabel}</p>
-        <div className="w-64 h-1.5 rounded-full overflow-hidden mb-2" style={{ background: 'var(--line-2)' }}>
-          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${((currentStep + 1) / steps.length) * 100}%`, background: 'var(--pl-accent)' }} />
+      <div style={{ position: 'fixed', inset: 0, backdropFilter: 'blur(8px)', zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, background: 'rgba(var(--bg), 0.95)' }}>
+        <h2 style={{ color: 'var(--ink)', fontFamily: 'var(--f-sans)', fontSize: 20, fontWeight: 600, margin: 0 }}>Generating posts for {monthName}...</h2>
+        <p style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)', fontSize: 12, margin: 0 }}>{etaLabel}</p>
+        <div style={{ width: 260, height: 6, borderRadius: 99, overflow: 'hidden', background: 'var(--line-2)' }}>
+          <div style={{ height: '100%', borderRadius: 99, transition: 'width 1s', width: `${((currentStep + 1) / steps.length) * 100}%`, background: 'var(--accent)' }} />
         </div>
-        <p className="text-sm mb-6" style={{ color: 'var(--ink-3)' }}>
+        <p style={{ color: 'var(--ink-3)', fontSize: 13, margin: 0 }}>
           {currentStep >= writingStepStart && currentStep <= writingStepEnd
             ? `Generating post ${simulatedPostCount || 1} of ${effectiveCount}...`
             : steps[currentStep]}
         </p>
-        <div className="space-y-2 text-left w-full max-w-xs">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', width: '100%', maxWidth: 300 }}>
           {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm transition-colors"
-              style={{ color: i < currentStep ? '#059669' : i === currentStep ? 'var(--pl-accent)' : 'var(--ink-4)' }}>
-              <span className="text-xs w-4 shrink-0">{i < currentStep ? '✓' : i === currentStep ? '▶' : '○'}</span>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: i < currentStep ? '#059669' : i === currentStep ? 'var(--accent)' : 'var(--ink-4)' }}>
+              <span style={{ fontSize: 11, width: 16, flexShrink: 0 }}>{i < currentStep ? '✓' : i === currentStep ? '▶' : '○'}</span>
               <span>{step}</span>
             </div>
           ))}
@@ -258,98 +215,89 @@ function BulkTab({ plan, postsLimit, postsRemaining, monthName }: { plan: string
 
   if (result) {
     return (
-      <PanelCard>
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
-            <CheckCircle2 size={18} className="text-white" />
+      <div className="gen-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CheckCircle2 size={18} color="#fff" />
           </div>
           <div>
-            <div className="font-semibold" style={{ color: 'var(--ink)' }}>{result.postsGenerated} posts generated for {monthName}</div>
-            {result.nextPostDate && <div className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Next post: {result.nextPostDate}</div>}
+            <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 14 }}>{result.postsGenerated} posts generated for {monthName}</div>
+            {result.nextPostDate && <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Next post: {result.nextPostDate}</div>}
           </div>
         </div>
-        {loadingPosts ? <div className="flex flex-col gap-3 mb-4">{[1,2,3].map(i => <PostCardSkeleton key={i} />)}</div>
+        {loadingPosts
+          ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[1,2,3].map(i => <PostCardSkeleton key={i} />)}</div>
           : batchPosts.length > 0 && (
-            <div className="flex flex-col gap-3 mb-4 max-h-[480px] overflow-y-auto pr-1">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 480, overflowY: 'auto' }}>
               {batchPosts.map(post => <PostCard key={post.id} id={post.id} content={post.content} scheduledAt={post.scheduled_at} status={post.status} />)}
             </div>
           )}
-        <div className="flex gap-2">
-          <Link href="/dashboard/calendar"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] font-medium transition-colors"
-            style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', fontFamily: 'var(--f-sans)' }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/dashboard/calendar" className="btn-dash btn-dash--primary btn-dash--sm">
             View in Calendar <ArrowRight size={12} />
           </Link>
-          <Link href="/dashboard/posts"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12.5px] transition-colors"
-            style={{ color: 'var(--ink-3)', fontFamily: 'var(--f-sans)' }}>
+          <Link href="/dashboard/posts" className="btn-dash btn-dash--ghost btn-dash--sm">
             All posts
           </Link>
         </div>
-      </PanelCard>
+      </div>
     )
   }
 
   if (showConfirm) {
     const presets = Array.from(new Set([1, 5, 10, 15, 20, 25, 30].filter(n => n < remaining).concat([remaining]))).sort((a, b) => a - b)
     return (
-      <PanelCard>
-        <div className="text-[11px] mb-4" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// how many posts?</div>
-        <div className="flex flex-wrap gap-2 mb-4">
+      <div className="gen-card">
+        <label className="db-label">// how many posts?</label>
+        <div className="pill-row">
           {presets.map(n => (
             <button key={n} type="button" onClick={() => setSelectedCount(n === remaining ? null : n)}
-              className="px-3.5 py-1.5 rounded-full text-[13px] font-semibold border transition-all"
+              className="trend-tag"
               style={{
-                background: effectiveCount === n ? 'var(--pl-accent)' : 'var(--surface-2)',
-                borderColor: effectiveCount === n ? 'var(--pl-accent)' : 'var(--line)',
-                color: effectiveCount === n ? '#fff' : 'var(--ink-2)',
+                background: effectiveCount === n ? 'var(--accent)' : 'var(--accent-soft)',
+                color: effectiveCount === n ? '#fff' : 'var(--accent)',
+                borderColor: effectiveCount === n ? 'var(--accent)' : undefined,
+                cursor: 'pointer',
+                fontWeight: 600,
               }}>
               {n === remaining ? `All ${n}` : n}
             </button>
           ))}
         </div>
-        <div className="text-[12px] mb-5" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+        <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
           {effectiveCount === remaining
             ? `Generating all ${remaining} remaining post${remaining !== 1 ? 's' : ''} this month`
             : `Generating ${effectiveCount} of ${remaining} remaining post${remaining !== 1 ? 's' : ''} this month`}
         </div>
-        <div className="flex gap-2">
-          <button onClick={handleBatchGenerate}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: 'var(--pl-accent)' }}>
-            <Sparkles size={14} /> Generate {effectiveCount} post{effectiveCount !== 1 ? 's' : ''}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleBatchGenerate} className="btn-dash btn-dash--primary">
+            <Sparkles size={13} /> Generate {effectiveCount} post{effectiveCount !== 1 ? 's' : ''}
           </button>
-          <button onClick={() => setShowConfirm(false)}
-            className="inline-flex items-center h-9 px-4 rounded-lg text-[13px] transition-colors"
-            style={{ background: 'var(--surface-3)', color: 'var(--ink-3)' }}>
+          <button onClick={() => setShowConfirm(false)} className="btn-dash btn-dash--outline">
             Cancel
           </button>
         </div>
-      </PanelCard>
+      </div>
     )
   }
 
   return (
-    <PanelCard>
-      <div className="text-[11px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// bulk · plan a month</div>
-      <div className="text-[15px] font-semibold mb-1" style={{ color: 'var(--ink)', fontFamily: 'var(--f-sans)' }}>
-        Generate posts for {monthName}
+    <div className="gen-card">
+      <label className="db-label">// bulk · plan a month</label>
+      <div>
+        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Generate posts for {monthName}</h3>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--ink-3)' }}>
+          AI writes LinkedIn posts in your voice and schedules them across the month.
+          {remaining > 0
+            ? ` You have ${remaining} post${remaining !== 1 ? 's' : ''} remaining this month.`
+            : " You've used all your posts this month."}
+        </p>
       </div>
-      <p className="text-[13px] leading-relaxed mb-4" style={{ color: 'var(--ink-3)' }}>
-        AI writes LinkedIn posts in your voice and schedules them across the month.
-        {remaining > 0
-          ? ` You have ${remaining} post${remaining !== 1 ? 's' : ''} remaining this month.`
-          : " You've used all your posts this month."}
-      </p>
-      {error && <div className="mb-4 px-3 py-2 rounded-lg text-sm text-red-600 bg-red-50" style={{ border: '1px solid #fecaca' }}>{error}</div>}
-      <button
-        onClick={() => setShowConfirm(true)}
-        disabled={remaining === 0}
-        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-        style={{ background: 'var(--pl-accent)' }}>
-        <Sparkles size={14} /> Generate posts →
+      {error && <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca' }}>{error}</div>}
+      <button onClick={() => setShowConfirm(true)} disabled={remaining === 0} className="btn-dash btn-dash--primary" style={{ alignSelf: 'flex-start' }}>
+        <Sparkles size={13} /> Generate posts →
       </button>
-    </PanelCard>
+    </div>
   )
 }
 
@@ -565,432 +513,454 @@ function GenerateContent() {
   const canGenerate = tab === 'prompt' ? topic.trim().length > 0 : tab === 'voice' ? !!voiceNoteId : !!selectedStory
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 pt-6 md:pt-8 pb-12 space-y-6">
-      <div>
-        <Eyebrow dot className="mb-4">Generate</Eyebrow>
-        <h1 className="text-[28px] font-semibold mb-1" style={{ color: 'var(--ink)', fontFamily: 'var(--f-sans)', letterSpacing: '-0.03em' }}>
-          Create a post
-        </h1>
-        <p className="text-[14px]" style={{ color: 'var(--ink-3)' }}>AI writes in your exact voice. You approve before it goes live.</p>
+    <div className="db-screen">
+      {/* ── Page header ── */}
+      <div className="db-screen__head">
+        <div>
+          <div className="db-screen__eyebrow">// 01 — Generate</div>
+          <h1 className="db-screen__title">Generate a <em>post</em></h1>
+        </div>
+        <div className="db-screen__actions">
+          <Link href="/dashboard/posts" className="btn-dash btn-dash--outline">
+            <ArrowLeft size={13} /> All Posts
+          </Link>
+        </div>
       </div>
 
+      {/* ── Error banner ── */}
       {error && (
-        <div className="px-4 py-3 rounded-lg text-sm flex items-center gap-2 bg-red-50 text-red-600" style={{ border: '1px solid #fecaca' }}>
+        <div style={{ marginBottom: 18, padding: '10px 16px', borderRadius: 'var(--r-sm)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
           {error}
-          {error.includes('limit') && <Link href="/dashboard/settings?tab=plan" className="ml-1 font-semibold underline">Upgrade →</Link>}
+          {error.includes('limit') && <Link href="/dashboard/settings?tab=plan" style={{ marginLeft: 4, fontWeight: 600, textDecoration: 'underline' }}>Upgrade →</Link>}
         </div>
       )}
 
-      <Tabs value={tab} onValueChange={v => setTab(v as Tab)}>
-        <div className="tabs-overflow -mx-1 px-1">
-        <TabsList
-          className="w-full min-w-[340px] h-10 gap-1 p-1"
-          style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)' }}
-        >
-          <TabsTrigger value="prompt" className="flex-1 gap-1.5 text-[12.5px] rounded data-[state=active]:bg-surface data-[state=active]:shadow-sm">
-            <Brain size={13} /> From a prompt
-          </TabsTrigger>
-          <TabsTrigger value="voice" className="flex-1 gap-1.5 text-[12.5px] rounded">
-            <Mic size={13} /> Voice note
-            {plan === 'starter' && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', fontFamily: 'var(--f-mono)' }}>STD+</span>}
-          </TabsTrigger>
-          <TabsTrigger value="story" className="flex-1 gap-1.5 text-[12.5px] rounded">
-            <BookOpen size={13} /> Story bank
-          </TabsTrigger>
-          <TabsTrigger value="bulk" className="flex-1 gap-1.5 text-[12.5px] rounded">
-            <Sparkles size={13} /> Bulk
-          </TabsTrigger>
-        </TabsList>
-        </div>
+      {/* ── Tabs ── */}
+      <div className="gen-tabs">
+        {([
+          { id: 'prompt', label: 'From a prompt', icon: Brain },
+          { id: 'voice',  label: 'Voice note',    icon: Mic,      badge: plan === 'starter' ? 'STD+' : undefined },
+          { id: 'story',  label: 'Story bank',     icon: BookOpen },
+          { id: 'bulk',   label: 'Bulk',           icon: Sparkles },
+        ] as const).map(({ id, label, icon: Icon, badge }) => (
+          <button key={id} onClick={() => setTab(id as Tab)} className={`gtab${tab === id ? ' is-on' : ''}`}>
+            <Icon size={14} /> {label}
+            {badge && <span className="trend-tag" style={{ fontSize: 9, padding: '2px 5px' }}>{badge}</span>}
+          </button>
+        ))}
+      </div>
 
-        {/* ── From a prompt ── */}
-        <TabsContent value="prompt" className="mt-4">
-          <PanelCard>
-            <div className="text-[10px] mb-4" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// from a prompt</div>
+      {/* ── Two-column layout ── */}
+      <div className="gen-grid">
+        {/* ── LEFT: Input card ── */}
+        <div>
+          {tab === 'prompt' && (
+            <div className="gen-card">
+              <label className="db-label">// from a prompt</label>
 
-            {/* Pillar chips */}
-            {contentPillars.length > 0 && (
-              <div className="mb-5">
-                <div className="text-[10px] mb-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// content pillars</div>
-                <div className="flex flex-wrap gap-2">
-                  {contentPillars.map(pillar => (
-                    <button key={pillar} type="button" onClick={() => setPendingPillar(p => p === pillar ? null : pillar)}
-                      className="text-[12px] font-medium px-3 py-1.5 rounded-full border transition-all"
-                      style={{
-                        background: pendingPillar === pillar ? 'var(--pl-accent)' : 'var(--surface-2)',
-                        borderColor: pendingPillar === pillar ? 'var(--pl-accent)' : 'var(--line)',
-                        color: pendingPillar === pillar ? '#fff' : 'var(--ink-2)',
-                      }}>
-                      {pillar}
+              {/* Pillar pills */}
+              {contentPillars.length > 0 && (
+                <div>
+                  <label className="db-label">// content pillars</label>
+                  <div className="pill-row" style={{ marginTop: 6 }}>
+                    {contentPillars.map(pillar => (
+                      <button key={pillar} type="button" onClick={() => setPendingPillar(p => p === pillar ? null : pillar)}
+                        className="trend-tag"
+                        style={{
+                          background: pendingPillar === pillar ? 'var(--accent)' : 'var(--accent-soft)',
+                          color: pendingPillar === pillar ? '#fff' : 'var(--accent)',
+                          borderColor: pendingPillar === pillar ? 'var(--accent)' : undefined,
+                          cursor: 'pointer',
+                        }}>
+                        {pillar}
+                      </button>
+                    ))}
+                  </div>
+                  {pendingPillar && (
+                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+                        <strong style={{ color: 'var(--ink)' }}>{pendingPillar}</strong> —
+                      </span>
+                      <button type="button" onClick={() => { setTopic(pendingPillar!); setPendingPillar(null) }}
+                        className="btn-dash btn-dash--primary btn-dash--sm">
+                        {topic.trim() ? 'Replace' : 'Use as topic'}
+                      </button>
+                      {topic.trim() && (
+                        <button type="button" onClick={() => { setTopic(t => `${t.trimEnd()}, ${pendingPillar}`); setPendingPillar(null) }}
+                          className="btn-dash btn-dash--outline btn-dash--sm">
+                          Add to topic
+                        </button>
+                      )}
+                      <button type="button" onClick={() => setPendingPillar(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)' }}>
+                        <X size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="db-field">
+                <label className="db-label" htmlFor="topic">What do you want to post about?</label>
+                <textarea
+                  id="topic" value={topic} onChange={e => setTopic(e.target.value)}
+                  placeholder="e.g. Why most startup advice is wrong, and what I learned building my first company..."
+                  className="g-textarea"
+                />
+              </div>
+
+              {/* Tone segmented control */}
+              <div>
+                <label className="db-label" style={{ marginBottom: 8 }}>// tone</label>
+                <div className="seg">
+                  {['Professional', 'Storytelling', 'Educational', 'Data-driven', 'Casual'].map(tone => (
+                    <button key={tone} type="button" onClick={() => setSelectedTone(t => t === tone ? '' : tone)}
+                      className={selectedTone === tone ? 'is-on' : ''}>
+                      {tone}
                     </button>
                   ))}
                 </div>
-                {pendingPillar && (
-                  <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg flex-wrap" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
-                    <span className="text-[12px]" style={{ color: 'var(--ink-3)' }}>
-                      <span className="font-semibold" style={{ color: 'var(--ink)' }}>{pendingPillar}</span> —
-                    </span>
-                    <button type="button" onClick={() => { setTopic(pendingPillar!); setPendingPillar(null) }}
-                      className="px-2.5 py-1 rounded-md text-[12px] font-semibold text-white" style={{ background: 'var(--pl-accent)' }}>
-                      {topic.trim() ? 'Replace' : 'Use as topic'}
-                    </button>
-                    {topic.trim() && (
-                      <button type="button" onClick={() => { setTopic(t => `${t.trimEnd()}, ${pendingPillar}`); setPendingPillar(null) }}
-                        className="px-2.5 py-1 rounded-md text-[12px] font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--ink-2)', border: '1px solid var(--line)' }}>
-                        Add to topic
-                      </button>
-                    )}
-                    <button type="button" onClick={() => setPendingPillar(null)} className="ml-auto" style={{ color: 'var(--ink-4)' }}>
-                      <X size={13} />
-                    </button>
+              </div>
+
+              {/* Photos */}
+              <div>
+                <label className="db-label">// photos (optional)</label>
+                <button type="button" onClick={() => setImageSelectorOpen(true)}
+                  className="btn-dash btn-dash--outline" style={{ alignSelf: 'flex-start' }}>
+                  <ImageIcon size={13} />
+                  {selectedImages.length > 0 ? `${selectedImages.length} photo${selectedImages.length > 1 ? 's' : ''} selected` : 'Add Photos'}
+                </button>
+                {selectedImages.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                    {selectedImages.map(img => (
+                      <div key={img.id} style={{ position: 'relative', width: 52, height: 52, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.public_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button onClick={() => setSelectedImages(prev => prev.filter(i => i.id !== img.id))}
+                          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', opacity: 0, transition: 'opacity .15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '0')}>
+                          <X size={12} color="#fff" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            )}
 
-            <div className="mb-4">
-              <Label htmlFor="topic" className="text-[12px] font-medium mb-1.5 block" style={{ color: 'var(--ink-2)', fontFamily: 'var(--f-sans)' }}>What do you want to post about?</Label>
-              <Textarea
-                id="topic" value={topic} onChange={e => setTopic(e.target.value)}
-                placeholder="e.g. Why most startup advice is wrong, and what I learned building my first company..."
-                className="min-h-[100px] resize-none text-[14px]"
-                style={{ background: 'var(--bg-2)', borderColor: 'var(--line)', color: 'var(--ink)' }}
-              />
-            </div>
-
-            {/* Tone */}
-            <div className="mb-4">
-              <div className="text-[10px] mb-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// tone</div>
-              <div className="flex flex-wrap gap-2">
-                {['Professional', 'Storytelling', 'Educational', 'Data-driven', 'Casual'].map(tone => (
-                  <button key={tone} type="button" onClick={() => setSelectedTone(t => t === tone ? '' : tone)}
-                    className="text-[12px] font-medium px-3 py-1.5 rounded-full border transition-all"
-                    style={{
-                      background: selectedTone === tone ? 'var(--ink)' : 'var(--surface-2)',
-                      borderColor: selectedTone === tone ? 'var(--ink)' : 'var(--line)',
-                      color: selectedTone === tone ? 'var(--bg)' : 'var(--ink-2)',
-                    }}>
-                    {tone}
-                  </button>
-                ))}
+              <div className="db-field">
+                <label className="db-label" htmlFor="context">Additional instructions <span style={{ fontWeight: 400, opacity: .7 }}>(optional)</span></label>
+                <input id="context" value={additionalContext} onChange={e => setAdditionalContext(e.target.value)}
+                  placeholder="e.g. Keep it under 200 words, mention a specific metric"
+                  className="db-input" />
               </div>
-            </div>
 
-            {/* Photos */}
-            <div className="mb-4">
-              <div className="text-[10px] mb-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// photos (optional)</div>
-              <button type="button" onClick={() => setImageSelectorOpen(true)}
-                className="flex items-center gap-2 text-[13px] px-3 py-2 rounded-lg border transition-all"
-                style={{ borderColor: 'var(--line)', background: 'var(--surface-2)', color: 'var(--ink-3)' }}>
-                <ImageIcon size={14} />
-                {selectedImages.length > 0 ? `${selectedImages.length} photo${selectedImages.length > 1 ? 's' : ''} selected` : 'Add Photos'}
-              </button>
-              {selectedImages.length > 0 && (
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  {selectedImages.map(img => (
-                    <div key={img.id} className="relative w-14 h-14 rounded-lg overflow-hidden group" style={{ border: '1px solid var(--line)' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.public_url} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => setSelectedImages(prev => prev.filter(i => i.id !== img.id))}
-                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <X size={13} className="text-white" />
+              <div className="g-actions">
+                <button onClick={() => handleGenerate()} disabled={loading || !canGenerate} className="btn-dash btn-dash--primary btn-dash--lg" style={{ width: '100%', justifyContent: 'center' }}>
+                  {loading
+                    ? <><Loader2 size={14} className="animate-spin" /> {loadingMsg}</>
+                    : <><Sparkles size={14} /> Generate Post</>
+                  }
+                </button>
+              </div>
+
+              <ImageSelector open={imageSelectorOpen} onClose={() => setImageSelectorOpen(false)}
+                onSelect={imgs => setSelectedImages(imgs)} maxSelect={4}
+                alreadySelected={selectedImages.map(i => i.id)} onHookSelect={hook => setTopic(hook)} />
+            </div>
+          )}
+
+          {tab === 'voice' && (
+            <div className="gen-card">
+              {plan === 'starter'
+                ? <UpgradePrompt feature="Voice Notes" minPlan="Standard" icon={Mic} />
+                : (
+                  <>
+                    <label className="db-label">// from a voice note</label>
+                    <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--ink-3)', margin: 0 }}>
+                      Ramble for 2 minutes. We&apos;ll transcribe and turn it into a polished post.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button onClick={recording ? stopRecording : startRecording}
+                        className="btn-dash btn-dash--primary"
+                        style={{ background: recording ? '#ef4444' : undefined }}>
+                        {recording ? <><MicOff size={13} /> Stop Recording</> : <><Mic size={13} /> Start Recording</>}
+                      </button>
+                      <button onClick={() => fileInputRef.current?.click()} className="btn-dash btn-dash--outline">
+                        <FolderOpen size={13} /> Upload Audio
+                      </button>
+                      <input ref={fileInputRef} type="file" accept="audio/*" style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) transcribeAudio(f, f.name) }} />
+                    </div>
+                    {recording && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-sm)', background: '#fef2f2', border: '1px solid #fecaca' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'plPulseDot 1.5s ease-in-out infinite' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#dc2626' }}>Recording in progress...</span>
+                      </div>
+                    )}
+                    {transcribing && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 'var(--r-sm)', background: 'var(--accent-soft)', border: '1px solid color-mix(in oklab, var(--accent) 20%, transparent)' }}>
+                        <Loader2 size={13} className="animate-spin" style={{ color: 'var(--accent)' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Transcribing...</span>
+                      </div>
+                    )}
+                    {transcript && (
+                      <div style={{ padding: '12px 16px', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+                        <label className="db-label">// transcript</label>
+                        <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--ink-2)', margin: 0, marginTop: 6 }}>{transcript}</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="db-label">// photos from this moment (optional)</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                        {voiceImages.map((f, i) => (
+                          <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={URL.createObjectURL(f)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <button onClick={() => setVoiceImages(v => v.filter((_, j) => j !== i))}
+                              style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', opacity: 0, transition: 'opacity .15s' }}
+                              onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                              onMouseLeave={e => (e.currentTarget.style.opacity = '0')}>
+                              <X size={13} color="#fff" />
+                            </button>
+                          </div>
+                        ))}
+                        {voiceImages.length < 5 && (
+                          <button onClick={() => voiceImgRef.current?.click()}
+                            style={{ width: 60, height: 60, borderRadius: 'var(--r-sm)', border: '2px dashed var(--line-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: 'none' }}>
+                            <Upload size={13} style={{ color: 'var(--ink-4)' }} />
+                            <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>Add</span>
+                          </button>
+                        )}
+                        <input ref={voiceImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+                          onChange={e => { const files = Array.from(e.target.files || []); setVoiceImages(v => [...v, ...files].slice(0, 5)); e.target.value = '' }} />
+                      </div>
+                    </div>
+                    <div className="g-actions">
+                      <button onClick={() => handleGenerate()} disabled={loading || !canGenerate} className="btn-dash btn-dash--primary btn-dash--lg" style={{ width: '100%', justifyContent: 'center' }}>
+                        {loading
+                          ? <><Loader2 size={14} className="animate-spin" /> {loadingMsg}</>
+                          : <><Sparkles size={14} /> Generate Post</>
+                        }
                       </button>
                     </div>
-                  ))}
+                  </>
+                )
+              }
+            </div>
+          )}
+
+          {tab === 'story' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="gen-card">
+                <label className="db-label">// dump a raw story</label>
+                <textarea value={newStory} onChange={e => setNewStory(e.target.value)}
+                  placeholder="This week I had a tough conversation with a potential investor..."
+                  className="g-textarea" />
+                {/* Story images */}
+                <div>
+                  <label className="db-label">// photos (optional)</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                    {storyImages.map((f, i) => (
+                      <div key={i} style={{ position: 'relative', width: 60, height: 60, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={URL.createObjectURL(f)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button onClick={() => setStoryImages(v => v.filter((_, j) => j !== i))}
+                          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', opacity: 0, transition: 'opacity .15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = '0')}>
+                          <X size={13} color="#fff" />
+                        </button>
+                      </div>
+                    ))}
+                    {storyImages.length < 5 && (
+                      <button onClick={() => storyImgRef.current?.click()}
+                        style={{ width: 60, height: 60, borderRadius: 'var(--r-sm)', border: '2px dashed var(--line-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer', background: 'none' }}>
+                        <Upload size={13} style={{ color: 'var(--ink-4)' }} />
+                        <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>Add</span>
+                      </button>
+                    )}
+                    <input ref={storyImgRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+                      onChange={e => { const files = Array.from(e.target.files || []); setStoryImages(v => [...v, ...files].slice(0, 5)); e.target.value = '' }} />
+                  </div>
+                </div>
+                <div className="g-actions">
+                  <button onClick={saveStory} disabled={savingStory || !newStory.trim()} className="btn-dash btn-dash--outline">
+                    {savingStory ? <><Loader2 size={13} className="animate-spin" /> Saving...</> : <><Save size={13} /> Save to Story Bank</>}
+                  </button>
+                </div>
+              </div>
+
+              {stories.length > 0 ? (
+                <div>
+                  <label className="db-label" style={{ marginBottom: 10 }}>// your story bank ({stories.length})</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                    {stories.map(s => (
+                      <div key={s.id} onClick={() => setSelectedStory(selectedStory?.id === s.id ? null : s)}
+                        style={{
+                          background: 'var(--surface)',
+                          border: `2px solid ${selectedStory?.id === s.id ? 'var(--accent)' : 'var(--line)'}`,
+                          borderRadius: 'var(--r-md)',
+                          padding: '14px 16px',
+                          cursor: 'pointer',
+                          transition: 'border-color .2s',
+                        }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--ink-2)', margin: 0, flex: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{s.raw_text}</p>
+                          {selectedStory?.id === s.id && (
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Check size={11} color="#fff" strokeWidth={2.5} />
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 10, marginTop: 8, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
+                          {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {s.status}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedStory && (
+                    <div className="gen-card">
+                      <div className="db-field">
+                        <label className="db-label" htmlFor="story-ctx">Additional context <span style={{ fontWeight: 400, opacity: .7 }}>(optional)</span></label>
+                        <input id="story-ctx" value={additionalContext} onChange={e => setAdditionalContext(e.target.value)}
+                          placeholder="e.g. Make it inspirational, add a question at the end"
+                          className="db-input" />
+                      </div>
+                      <div className="g-actions">
+                        <button onClick={() => handleGenerate()} disabled={loading || !canGenerate} className="btn-dash btn-dash--primary btn-dash--lg" style={{ width: '100%', justifyContent: 'center' }}>
+                          {loading
+                            ? <><Loader2 size={14} className="animate-spin" /> {loadingMsg}</>
+                            : <><Sparkles size={14} /> Generate Post</>
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="gen-card gen-card--ghost">
+                  <div className="db-empty" style={{ padding: '32px 16px' }}>
+                    <BookOpen size={28} style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+                    <strong>Your story bank is empty</strong>
+                    <span>Dump raw experiences above — we&apos;ll turn them into posts.</span>
+                  </div>
                 </div>
               )}
             </div>
+          )}
 
-            <div>
-              <Label htmlFor="context" className="text-[12px] font-medium mb-1.5 block" style={{ color: 'var(--ink-2)', fontFamily: 'var(--f-sans)' }}>
-                Additional instructions <span style={{ color: 'var(--ink-4)', fontWeight: 400 }}>(optional)</span>
-              </Label>
-              <Input id="context" value={additionalContext} onChange={e => setAdditionalContext(e.target.value)}
-                placeholder="e.g. Keep it under 200 words, mention a specific metric"
-                className="text-[14px]" style={{ background: 'var(--bg-2)', borderColor: 'var(--line)', color: 'var(--ink)' }} />
-            </div>
+          {tab === 'bulk' && (
+            <BulkTab plan={plan} postsLimit={postsLimit} postsRemaining={postsRemaining} monthName={monthName} />
+          )}
+        </div>
 
-            <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} loadingMsg={loadingMsg} />
-          </PanelCard>
-
-          <ImageSelector open={imageSelectorOpen} onClose={() => setImageSelectorOpen(false)}
-            onSelect={imgs => setSelectedImages(imgs)} maxSelect={4}
-            alreadySelected={selectedImages.map(i => i.id)} onHookSelect={hook => setTopic(hook)} />
-        </TabsContent>
-
-        {/* ── Voice note ── */}
-        <TabsContent value="voice" className="mt-4">
-          <PanelCard>
-            {plan === 'starter'
-              ? <UpgradePrompt feature="Voice Notes" minPlan="Standard" icon={Mic} />
-              : (
-                <div className="flex flex-col gap-4">
-                  <div className="text-[10px] mb-1" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// from a voice note</div>
-                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>
-                    Ramble for 2 minutes. We'll transcribe and turn it into a polished post.
-                  </p>
-                  <div className="flex gap-2.5 flex-wrap">
-                    <button onClick={recording ? stopRecording : startRecording}
-                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
-                      style={{ background: recording ? '#ef4444' : 'var(--pl-accent)' }}>
-                      {recording ? <><MicOff size={14} /> Stop Recording</> : <><Mic size={14} /> Start Recording</>}
-                    </button>
-                    <button onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-[13px] transition-colors"
-                      style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>
-                      <FolderOpen size={14} /> Upload Audio
-                    </button>
-                    <input ref={fileInputRef} type="file" accept="audio/*" className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) transcribeAudio(f, f.name) }} />
-                  </div>
-                  {recording && (
-                    <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg bg-red-50" style={{ border: '1px solid #fecaca' }}>
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-sm font-semibold text-red-600">Recording in progress...</span>
-                    </div>
-                  )}
-                  {transcribing && (
-                    <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg" style={{ background: 'var(--pl-accent-soft)', border: '1px solid var(--line)' }}>
-                      <Loader2 size={14} className="animate-spin" style={{ color: 'var(--pl-accent)' }} />
-                      <span className="text-sm font-semibold" style={{ color: 'var(--pl-accent)' }}>Transcribing...</span>
-                    </div>
-                  )}
-                  {transcript && (
-                    <div className="p-4 rounded-lg" style={{ background: 'var(--bg-2)', border: '1px solid var(--line)' }}>
-                      <div className="text-[10px] mb-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)' }}>// transcript</div>
-                      <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-2)' }}>{transcript}</p>
-                    </div>
-                  )}
-                  {/* Voice images */}
-                  <div>
-                    <div className="text-[10px] mb-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)' }}>// photos from this moment (optional)</div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {voiceImages.map((f, i) => (
-                        <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden group" style={{ border: '1px solid var(--line)' }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-                          <button onClick={() => setVoiceImages(v => v.filter((_, j) => j !== i))}
-                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                            <X size={14} className="text-white" />
-                          </button>
-                        </div>
-                      ))}
-                      {voiceImages.length < 5 && (
-                        <button onClick={() => voiceImgRef.current?.click()}
-                          className="w-16 h-16 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-colors"
-                          style={{ borderColor: 'var(--line-2)' }}>
-                          <Upload size={14} style={{ color: 'var(--ink-4)' }} />
-                          <span className="text-[10px]" style={{ color: 'var(--ink-4)' }}>Add</span>
-                        </button>
-                      )}
-                      <input ref={voiceImgRef} type="file" accept="image/*" multiple className="hidden"
-                        onChange={e => { const files = Array.from(e.target.files || []); setVoiceImages(v => [...v, ...files].slice(0, 5)); e.target.value = '' }} />
-                    </div>
-                  </div>
-                  <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} loadingMsg={loadingMsg} />
-                </div>
-              )
-            }
-          </PanelCard>
-        </TabsContent>
-
-        {/* ── Story bank ── */}
-        <TabsContent value="story" className="mt-4">
-          <div className="flex flex-col gap-4">
-            <PanelCard>
-              <div className="text-[10px] mb-4" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// dump a raw story</div>
-              <Textarea value={newStory} onChange={e => setNewStory(e.target.value)}
-                placeholder="This week I had a tough conversation with a potential investor..."
-                className="min-h-[130px] resize-none text-[14px] mb-4"
-                style={{ background: 'var(--bg-2)', borderColor: 'var(--line)', color: 'var(--ink)' }} />
-              {/* Story images */}
-              <div className="mb-4">
-                <div className="text-[10px] mb-2" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)' }}>// photos (optional)</div>
-                <div className="flex flex-wrap gap-2 items-center">
-                  {storyImages.map((f, i) => (
-                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden group" style={{ border: '1px solid var(--line)' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => setStoryImages(v => v.filter((_, j) => j !== i))}
-                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <X size={14} className="text-white" />
-                      </button>
-                    </div>
-                  ))}
-                  {storyImages.length < 5 && (
-                    <button onClick={() => storyImgRef.current?.click()}
-                      className="w-16 h-16 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-colors"
-                      style={{ borderColor: 'var(--line-2)' }}>
-                      <Upload size={14} style={{ color: 'var(--ink-4)' }} />
-                      <span className="text-[10px]" style={{ color: 'var(--ink-4)' }}>Add</span>
-                    </button>
-                  )}
-                  <input ref={storyImgRef} type="file" accept="image/*" multiple className="hidden"
-                    onChange={e => { const files = Array.from(e.target.files || []); setStoryImages(v => [...v, ...files].slice(0, 5)); e.target.value = '' }} />
-                </div>
-              </div>
-              <button onClick={saveStory} disabled={savingStory || !newStory.trim()}
-                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: '#059669' }}>
-                {savingStory ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> Save to Story Bank</>}
-              </button>
-            </PanelCard>
-
-            {stories.length > 0 ? (
-              <div>
-                <div className="text-[10px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// your story bank ({stories.length})</div>
-                <div className="flex flex-col gap-2 mb-4">
-                  {stories.map(s => (
-                    <div key={s.id} onClick={() => setSelectedStory(selectedStory?.id === s.id ? null : s)}
-                      className="border-2 rounded-xl p-4 cursor-pointer transition-all"
-                      style={{
-                        background: 'var(--surface)',
-                        borderColor: selectedStory?.id === s.id ? 'var(--pl-accent)' : 'var(--line)',
-                        boxShadow: selectedStory?.id === s.id ? 'var(--sh-1)' : 'none',
-                      }}>
-                      <div className="flex justify-between items-start gap-3">
-                        <p className="text-sm leading-relaxed line-clamp-2 flex-1" style={{ color: 'var(--ink-2)' }}>{s.raw_text}</p>
-                        {selectedStory?.id === s.id && (
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pl-accent)' }}>
-                            <Check size={11} className="text-white" strokeWidth={2.5} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-[10px] mt-2" style={{ color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-                        {new Date(s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {s.status}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {selectedStory && (
-                  <PanelCard>
-                    <div className="mb-4">
-                      <Label className="text-[12px] font-medium mb-1.5 block" style={{ color: 'var(--ink-2)', fontFamily: 'var(--f-sans)' }}>
-                        Additional context <span style={{ color: 'var(--ink-4)', fontWeight: 400 }}>(optional)</span>
-                      </Label>
-                      <Input value={additionalContext} onChange={e => setAdditionalContext(e.target.value)}
-                        placeholder="e.g. Make it inspirational, add a question at the end"
-                        className="text-[14px]" style={{ background: 'var(--bg-2)', borderColor: 'var(--line)', color: 'var(--ink)' }} />
-                    </div>
-                    <GenerateButton loading={loading} disabled={!canGenerate} onClick={handleGenerate} loadingMsg={loadingMsg} />
-                  </PanelCard>
-                )}
-              </div>
-            ) : (
-              <PanelCard>
-                <div className="py-8 text-center">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--surface-3)' }}>
-                    <BookOpen size={22} style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
-                  </div>
-                  <div className="font-semibold mb-1.5" style={{ color: 'var(--ink)' }}>Your story bank is empty</div>
-                  <div className="text-sm" style={{ color: 'var(--ink-3)' }}>Dump raw experiences above — we'll turn them into posts.</div>
-                </div>
-              </PanelCard>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* ── Bulk ── */}
-        <TabsContent value="bulk" className="mt-4">
-          <BulkTab plan={plan} postsLimit={postsLimit} postsRemaining={postsRemaining} monthName={monthName} />
-        </TabsContent>
-
-        {/* ── Generated post chooser (shared across prompt/voice/story tabs) ── */}
-        {generatedPosts.length > 0 && !selectedPost && (
-          <div className="mt-4">
-            <div className="text-[10px] mb-4" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// choose a version</div>
-            <div className="flex flex-col gap-3">
+        {/* ── RIGHT: Output panel ── */}
+        <div>
+          {/* Generated post chooser */}
+          {generatedPosts.length > 0 && !selectedPost && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label className="db-label">// choose a version</label>
               {generatedPosts.map((post, i) => (
                 <div key={post.id} onClick={() => selectPost(post)}
-                  className="rounded-xl p-5 cursor-pointer transition-all hover:-translate-y-0.5 group"
-                  style={{ background: 'var(--surface)', border: '2px solid var(--line)', boxShadow: 'var(--sh-1)' }}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--pl-accent)', fontFamily: 'var(--f-mono)' }}>Option {i + 1}</div>
-                    <div className="text-[11px] flex items-center gap-1 transition-colors" style={{ color: 'var(--ink-4)' }}>
-                      Select <ArrowLeft size={12} className="rotate-180" />
-                    </div>
+                  className="gen-card"
+                  style={{ cursor: 'pointer', transition: 'transform .15s, box-shadow .15s, border-color .15s', borderColor: 'var(--line)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--sh-2)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}>
+                  <div className="oc-head">
+                    <span style={{ color: 'var(--accent)', fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>Option {i + 1}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink-4)' }}>Select <ArrowRight size={11} /></span>
                   </div>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--ink-2)' }}>{post.content}</p>
+                  <div className="oc-post">
+                    <p>{post.content}</p>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Selected post editor ── */}
-        {selectedPost && (
-          <PanelCard className="mt-4">
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-[10px]" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// edit & schedule</div>
-              <button onClick={() => setSelectedPost(null)} className="text-[12px] flex items-center gap-1 transition-opacity hover:opacity-70" style={{ color: 'var(--ink-3)' }}>
-                <ArrowLeft size={12} /> Choose different
-              </button>
-            </div>
-            <Textarea value={editContent} onChange={e => setEditContent(e.target.value)}
-              className="min-h-[200px] mb-5 whitespace-pre-wrap resize-none text-[14px]"
-              style={{ background: 'var(--bg-2)', borderColor: 'var(--line)', color: 'var(--ink)' }} />
-
-            {actionResult === 'scheduled' && (
-              <div className="rounded-lg px-4 py-3 mb-4 text-sm flex items-center gap-2 bg-emerald-50 text-emerald-700" style={{ border: '1px solid #6ee7b7' }}>
-                <Check size={15} className="text-emerald-600" /> Post scheduled successfully!
-              </div>
-            )}
-            {actionResult === 'approval_sent' && (
-              <div className="rounded-lg px-4 py-3 mb-4 text-sm flex items-center gap-2" style={{ background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)', border: '1px solid var(--pl-accent)' }}>
-                <Mail size={15} /> Approval email sent! Check your inbox.
-              </div>
-            )}
-            {actionResult.startsWith('Error') && (
-              <div className="rounded-lg px-4 py-3 mb-4 text-sm bg-red-50 text-red-600" style={{ border: '1px solid #fecaca' }}>{actionResult}</div>
-            )}
-
-            <div className="flex flex-col gap-2.5">
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <Input type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)} className="flex-1 text-[14px]"
-                  style={{ background: 'var(--bg-2)', borderColor: 'var(--line)', color: 'var(--ink)' }} />
-                <button onClick={schedulePost} disabled={scheduling || !scheduleDate}
-                  className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-                  style={{ background: 'var(--pl-accent)' }}>
-                  {scheduling ? <><Loader2 size={14} className="animate-spin" /> Scheduling...</> : <><CalendarClock size={14} /> Schedule</>}
+          {/* Selected post editor */}
+          {selectedPost && (
+            <div className="gen-card gen-card--out">
+              <div className="oc-head">
+                <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>// edit &amp; schedule</span>
+                <button onClick={() => setSelectedPost(null)} className="btn-dash btn-dash--ghost btn-dash--sm">
+                  <ArrowLeft size={12} /> Choose different
                 </button>
               </div>
-              <button onClick={sendApproval}
-                className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg text-[13px] font-medium transition-colors"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>
-                <Mail size={14} /> Send Approval Email
-              </button>
-            </div>
 
-            {(fetchingImages || imageSuggestions.length > 0) && (
-              <div className="mt-5 pt-5" style={{ borderTop: '1px solid var(--line)' }}>
-                <div className="text-[10px] mb-3" style={{ fontFamily: 'var(--f-mono)', color: 'var(--ink-4)', letterSpacing: '.05em' }}>// image ideas</div>
-                {fetchingImages
-                  ? <div className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--ink-4)' }}><Loader2 size={13} className="animate-spin" /> Generating ideas...</div>
-                  : <div className="flex flex-col gap-2.5">
-                      {imageSuggestions.map((s, i) => (
-                        <div key={i} className="flex gap-3 rounded-lg p-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
-                          <span className="text-xl shrink-0">{s.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>{s.suggestion}</div>
-                            <div className="text-[12px] mt-0.5" style={{ color: 'var(--ink-4)' }}>{s.why}</div>
+              <div className="oc-post">
+                <textarea value={editContent} onChange={e => setEditContent(e.target.value)}
+                  className="g-textarea" style={{ minHeight: 220 }} />
+              </div>
+
+              {actionResult === 'scheduled' && (
+                <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, background: '#ecfdf5', color: '#059669', border: '1px solid #6ee7b7' }}>
+                  <Check size={14} /> Post scheduled successfully!
+                </div>
+              )}
+              {actionResult === 'approval_sent' && (
+                <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid color-mix(in oklab, var(--accent) 25%, transparent)' }}>
+                  <Mail size={14} /> Approval email sent! Check your inbox.
+                </div>
+              )}
+              {actionResult.startsWith('Error') && (
+                <div style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', fontSize: 13, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>{actionResult}</div>
+              )}
+
+              <div className="oc-foot" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <input type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)} className="db-input" style={{ flex: 1, minWidth: 160 }} />
+                  <button onClick={schedulePost} disabled={scheduling || !scheduleDate} className="btn-dash btn-dash--primary">
+                    {scheduling ? <><Loader2 size={13} className="animate-spin" /> Scheduling...</> : <><CalendarClock size={13} /> Schedule</>}
+                  </button>
+                </div>
+                <button onClick={sendApproval} className="btn-dash btn-dash--outline" style={{ width: '100%', justifyContent: 'center' }}>
+                  <Mail size={13} /> Send Approval Email
+                </button>
+              </div>
+
+              {(fetchingImages || imageSuggestions.length > 0) && (
+                <div style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
+                  <label className="db-label" style={{ marginBottom: 10 }}>// image ideas</label>
+                  {fetchingImages
+                    ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-4)' }}><Loader2 size={13} className="animate-spin" /> Generating ideas...</div>
+                    : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {imageSuggestions.map((s, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 12px', borderRadius: 'var(--r-sm)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
+                            <span style={{ fontSize: 18, flexShrink: 0 }}>{s.icon}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{s.suggestion}</div>
+                              <div style={{ fontSize: 12, marginTop: 2, color: 'var(--ink-4)' }}>{s.why}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                }
-              </div>
-            )}
+                        ))}
+                      </div>
+                  }
+                </div>
+              )}
 
-            <ImageUploadSection onUpload={url => setUploadedImageUrl(url)} />
-            {uploadedImageUrl && (
-              <div className="mt-2 text-[12px] flex items-center gap-1.5 text-emerald-600">
-                <Check size={13} /> Image ready — will be attached when you schedule
+              <ImageUploadSection onUpload={url => setUploadedImageUrl(url)} />
+              {uploadedImageUrl && (
+                <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, color: '#059669', marginTop: 4 }}>
+                  <Check size={12} /> Image ready — will be attached when you schedule
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Empty state for right column */}
+          {!selectedPost && generatedPosts.length === 0 && (
+            <div className="gen-card gen-card--ghost">
+              <div className="db-empty">
+                <Sparkles size={28} style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+                <strong>Your post will appear here</strong>
+                <span>Fill in the details on the left and hit Generate to create your post.</span>
               </div>
-            )}
-          </PanelCard>
-        )}
-      </Tabs>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -246,7 +246,13 @@ function HomeContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeSample, setActiveSample] = useState(0)
+  const [accountType, setAccountType] = useState<'personal' | 'business'>('personal')
   const currency = useCurrency()
+
+  function handleLinkedInAuth() {
+    document.cookie = `account_type=${accountType}; path=/; max-age=${30 * 24 * 60 * 60}; samesite=lax`
+    window.location.href = '/api/auth/linkedin'
+  }
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60)
@@ -291,11 +297,11 @@ function HomeContent() {
               color: 'var(--ink-2)', textDecoration: 'none', border: '1px solid var(--line)',
               background: 'transparent', transition: 'all .15s',
             }}>Sign in</a>
-            <a href="/api/auth/linkedin" style={{
+            <button onClick={handleLinkedInAuth} style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', fontSize: 14, fontWeight: 600,
               background: 'var(--ink)', color: 'var(--bg)',
-              borderRadius: 'var(--r-sm)', textDecoration: 'none',
+              borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer',
               transition: 'opacity .15s',
             }}>
               <LinkedinIcon className="w-4 h-4" />
@@ -303,7 +309,7 @@ function HomeContent() {
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ width: 14, height: 14 }}>
                 <path d="M3 8h10M9 4l4 4-4 4" />
               </svg>
-            </a>
+            </button>
           </nav>
 
           {/* Mobile hamburger */}
@@ -329,13 +335,14 @@ function HomeContent() {
                 {label}
               </a>
             ))}
-            <a href="/api/auth/linkedin" style={{
+            <button onClick={handleLinkedInAuth} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               background: 'var(--ink)', color: 'var(--bg)', borderRadius: 'var(--r-md)',
-              padding: '14px 20px', fontSize: 16, fontWeight: 600, textDecoration: 'none', marginTop: 4,
+              padding: '14px 20px', fontSize: 16, fontWeight: 600, cursor: 'pointer',
+              border: 'none', marginTop: 4,
             }}>
               <LinkedinIcon className="w-4 h-4" /> Connect LinkedIn
-            </a>
+            </button>
             <a href="/api/auth/google" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               background: 'transparent', color: 'var(--ink)', borderRadius: 'var(--r-md)',
@@ -439,18 +446,37 @@ function HomeContent() {
               PersonaLink studies how you actually write — your rhythm, your vocabulary, the way you start sentences — and produces posts that ship at the right time, in the right voice. You stay the author. We handle the cadence.
             </p>
 
+            {/* Account type toggle */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: 3, gap: 2, marginBottom: 16 }}>
+              {(['personal', 'business'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => setAccountType(type)}
+                  style={{
+                    padding: '6px 16px', borderRadius: 'calc(var(--r-sm) - 2px)',
+                    fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer',
+                    transition: 'all .15s',
+                    background: accountType === type ? 'var(--ink)' : 'transparent',
+                    color: accountType === type ? 'var(--bg)' : 'var(--ink-3)',
+                  }}
+                >
+                  {type === 'personal' ? 'Personal' : 'Business'}
+                </button>
+              ))}
+            </div>
+
             {/* CTAs */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-              <a href="/api/auth/linkedin" style={{
+              <button onClick={handleLinkedInAuth} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
                 height: 52, padding: '0 26px', borderRadius: 'var(--r-md)',
-                fontSize: 15, fontWeight: 700, textDecoration: 'none',
+                fontSize: 15, fontWeight: 700, cursor: 'pointer',
                 background: 'var(--ink)', color: 'var(--bg)',
-                boxShadow: 'var(--sh-2)', transition: 'opacity .15s',
+                border: 'none', boxShadow: 'var(--sh-2)', transition: 'opacity .15s',
               }}>
                 <LinkedinIcon style={{ width: 17, height: 17 }} />
-                Connect LinkedIn — free
-              </a>
+                {accountType === 'business' ? 'Connect LinkedIn — business' : 'Connect LinkedIn — free'}
+              </button>
               <a href="/api/auth/google" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
                 height: 52, padding: '0 26px', borderRadius: 'var(--r-md)',
@@ -1170,16 +1196,16 @@ function HomeContent() {
                         </li>
                       ))}
                     </ul>
-                    <a href="/api/auth/linkedin" style={{
+                    <button onClick={handleLinkedInAuth} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       padding: '13px 20px', borderRadius: 'var(--r-md)', fontWeight: 600, fontSize: 14,
-                      textDecoration: 'none', transition: 'opacity .15s',
+                      cursor: 'pointer', transition: 'opacity .15s',
                       background: plan.popular ? '#fff' : 'transparent',
                       color: plan.popular ? 'var(--ink)' : 'var(--ink)',
                       border: plan.popular ? 'none' : '1px solid var(--line)',
                     }}>
                       Start free trial
-                    </a>
+                    </button>
                   </div>
                 </FadeUp>
               )
@@ -1303,16 +1329,16 @@ function HomeContent() {
               <em style={{ fontFamily: 'var(--f-display)', fontStyle: 'italic', fontWeight: 400, color: 'rgba(255,255,255,.75)' }}>Sound like you when you arrive.</em>
             </h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 20 }}>
-              <a href="/api/auth/linkedin" style={{
+              <button onClick={handleLinkedInAuth} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
                 height: 54, padding: '0 28px', borderRadius: 'var(--r-md)',
-                fontSize: 15, fontWeight: 700, textDecoration: 'none',
-                background: '#fff', color: '#0a1024',
+                fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                background: '#fff', color: '#0a1024', border: 'none',
                 boxShadow: '0 24px 64px rgba(43,77,255,.3)',
               }}>
                 <LinkedinIcon style={{ width: 17, height: 17 }} />
-                Connect LinkedIn — free
-              </a>
+                {accountType === 'business' ? 'Connect LinkedIn — business' : 'Connect LinkedIn — free'}
+              </button>
               <a href="#pricing" style={{
                 display: 'inline-flex', alignItems: 'center', gap: 9,
                 height: 54, padding: '0 28px', borderRadius: 'var(--r-md)',

@@ -44,6 +44,15 @@ function utcToLocalInput(utcString: string): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
+function statusStateClass(status: string): string {
+  if (status === 'published' || status === 'approved') return 'state state--done'
+  if (status === 'draft') return 'state state--draft'
+  if (status === 'pending_approval' || status === 'publishing') return 'state state--review'
+  if (status === 'scheduled') return 'state state--on'
+  if (status === 'failed' || status === 'rejected') return 'state state--review'
+  return 'state state--draft'
+}
+
 type ViewMode = 'list' | 'calendar'
 type FilterStatus = 'all' | 'scheduled' | 'draft' | 'published'
 
@@ -52,6 +61,7 @@ function PostsContent() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewMode>('list')
   const [filter, setFilter] = useState<FilterStatus>('all')
+  const [search, setSearch] = useState('')
   const [editingPost, setEditingPost] = useState<Post | null>(null)
   const [editContent, setEditContent] = useState('')
   const [editSchedule, setEditSchedule] = useState('')
@@ -149,6 +159,9 @@ function PostsContent() {
     if (filter === 'draft') return ['draft', 'pending_approval'].includes(p.status)
     if (filter === 'published') return p.status === 'published'
     return true
+  }).filter(p => {
+    if (!search.trim()) return true
+    return p.content.toLowerCase().includes(search.toLowerCase())
   })
 
   const byDate: Record<string, Post[]> = {}
@@ -158,17 +171,27 @@ function PostsContent() {
     byDate[d].push(p)
   })
 
+  const tabCounts: Record<FilterStatus, number> = {
+    all: posts.length,
+    scheduled: posts.filter(p => p.status === 'scheduled').length,
+    draft: posts.filter(p => ['draft', 'pending_approval'].includes(p.status)).length,
+    published: posts.filter(p => p.status === 'published').length,
+  }
+
   if (loading) {
     return (
-      <div className="p-4 md:p-7">
-        <div className="skeleton h-8 w-48 mb-6 rounded" />
-        {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl mb-3" />)}
+      <div className="db-screen">
+        <div className="skeleton" style={{ height: 36, width: 200, marginBottom: 28, borderRadius: 6 }} />
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: 56, borderRadius: 8, marginBottom: 4 }} />
+        ))}
       </div>
     )
   }
 
   return (
-    <div className="p-4 md:p-7 max-w-3xl">
+    <div className="db-screen">
+      {/* Edit post dialog — preserved exactly */}
       <ImageSelector
         open={imageSelectorOpen}
         onClose={() => setImageSelectorOpen(false)}
@@ -273,318 +296,223 @@ function PostsContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-6">
+      {/* Page header */}
+      <div className="db-screen__head">
         <div>
-          <h1 style={{ fontFamily: 'var(--f-sans)', fontWeight: 600, fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-            Posts
+          <p className="db-screen__eyebrow">// 02 — Posts</p>
+          <h1 className="db-screen__title">
+            Your <em>content</em> queue
           </h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-            // {posts.length} total
-          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="db-screen__actions">
           {plan === 'pro' && (
-            <button
-              onClick={bulkGenerate}
-              className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
-              style={{
-                background: 'var(--pl-accent-soft)', color: 'var(--pl-accent)',
-                border: '1px solid var(--pl-accent-2)', borderRadius: 'var(--r-sm)',
-                padding: '7px 14px', fontSize: 13, fontWeight: 600,
-              }}
-            >
-              <Zap className="size-3.5" />
+            <button onClick={bulkGenerate} className="btn-dash btn-dash--outline">
+              <Zap />
               <span className="hidden sm:inline">Bulk Fill 30 Days</span>
               <span className="sm:hidden">Bulk Fill</span>
             </button>
           )}
-          <Link
-            href="/dashboard/generate"
-            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
-            style={{
-              background: 'var(--pl-accent)', color: '#fff',
-              borderRadius: 'var(--r-sm)', padding: '7px 14px',
-              fontSize: 13, fontWeight: 600,
-            }}
-          >
-            <Plus className="size-3.5" />
+          <Link href="/dashboard/generate" className="btn-dash btn-dash--primary">
+            <Plus />
             New Post
           </Link>
         </div>
       </div>
 
-      {/* View + filter controls */}
-      <div className="flex gap-3 mb-6 items-center flex-wrap">
-        <div
-          className="flex gap-0.5 p-1"
-          style={{ background: 'var(--surface-2)', borderRadius: 'var(--r-md)' }}
-        >
-          {(['list', 'calendar'] as ViewMode[]).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className="flex items-center gap-1.5 transition-all"
-              style={{
-                height: 28, padding: '0 12px', fontSize: 12, fontWeight: 500,
-                borderRadius: 'var(--r-sm)',
-                background: view === v ? 'var(--surface)' : 'transparent',
-                color: view === v ? 'var(--ink)' : 'var(--ink-3)',
-                boxShadow: view === v ? 'var(--sh-1)' : 'none',
-              }}
-            >
-              {v === 'list' ? <><List className="size-3" />List</> : <><Calendar className="size-3" />Calendar</>}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
+      {/* Filter bar */}
+      <div className="filter-bar">
+        <div className="filter-tabs">
           {(['all', 'scheduled', 'draft', 'published'] as FilterStatus[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className="transition-all"
-              style={{
-                height: 28, padding: '0 14px', fontSize: 12, fontWeight: 500,
-                borderRadius: 'var(--r-full)',
-                background: filter === f ? 'var(--pl-accent)' : 'var(--surface)',
-                color: filter === f ? '#fff' : 'var(--ink-3)',
-                border: filter === f ? '1px solid var(--pl-accent)' : '1px solid var(--line)',
-              }}
+              className={`ft${filter === f ? ' is-on' : ''}`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
+              <em>{tabCounts[f]}</em>
             </button>
           ))}
+        </div>
+        <div className="filter-controls">
+          <input
+            type="search"
+            placeholder="Search posts…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="db-input"
+            style={{ width: 200 }}
+          />
+          <button
+            className={`chip-btn${view === 'list' ? '' : ' is-on'}`}
+            onClick={() => setView(v => v === 'list' ? 'calendar' : 'list')}
+          >
+            {view === 'list' ? <Calendar /> : <List />}
+            {view === 'list' ? 'Calendar' : 'List'}
+          </button>
         </div>
       </div>
 
       {/* List view */}
       {view === 'list' && (
-        <div className="flex flex-col gap-2">
-          {filtered.length === 0 ? (
-            <div
-              className="flex flex-col items-center justify-center py-16 text-center"
-              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}
-            >
-              <div
-                className="flex items-center justify-center mb-4"
-                style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}
-              >
-                <FileText className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
-              </div>
-              <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>No posts found</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>
-                {filter !== 'all' ? `No ${filter} posts yet.` : 'Generate your first post to get started.'}
-              </div>
-              <Link
-                href="/dashboard/generate"
-                className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
-                style={{
-                  background: 'var(--pl-accent)', color: '#fff',
-                  borderRadius: 'var(--r-sm)', padding: '8px 16px',
-                  fontSize: 13, fontWeight: 600,
-                }}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
+        filtered.length === 0 ? (
+          <div className="posts-table">
+            <div className="db-empty">
+              <FileText strokeWidth={1.5} />
+              <strong>No posts found</strong>
+              <span>
+                {filter !== 'all'
+                  ? `No ${filter} posts yet.`
+                  : search
+                  ? 'No posts match your search.'
+                  : 'Generate your first post to get started.'}
+              </span>
+              <Link href="/dashboard/generate" className="btn-dash btn-dash--primary" style={{ marginTop: 6 }}>
+                <Sparkles />
                 Generate a Post
               </Link>
             </div>
-          ) : filtered.map(post => (
-            <div
-              key={post.id}
-              style={{
-                background: 'var(--surface)', border: '1px solid var(--line)',
-                borderRadius: 'var(--r-lg)', padding: '14px 16px',
-                transition: 'border-color 0.15s',
-              }}
-              className="group"
-            >
-              <div className="flex gap-4 items-start">
-                <div className="flex-1 min-w-0">
-                  <div className="flex gap-2 items-center mb-2 flex-wrap">
-                    {/* Status badge */}
-                    <span
-                      style={{
-                        fontSize: 11, fontWeight: 600, padding: '2px 8px',
-                        borderRadius: 'var(--r-full)',
-                        background: (STATUS_COLOR[post.status] || 'var(--ink-4)') + '18',
-                        color: STATUS_COLOR[post.status] || 'var(--ink-4)',
-                      }}
-                    >
-                      {STATUS_LABEL[post.status] || post.status}
-                    </span>
-                    {post.content_pillar && (
-                      <span
-                        style={{
-                          fontSize: 11, fontWeight: 500, padding: '2px 8px',
-                          borderRadius: 'var(--r-full)',
-                          background: 'var(--surface-2)', color: 'var(--ink-3)',
-                          border: '1px solid var(--line)',
-                        }}
-                      >
-                        {post.content_pillar}
-                      </span>
-                    )}
-                    {post.scheduled_at && (
-                      <span
-                        className="flex items-center gap-1"
-                        style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}
-                      >
-                        <Calendar className="w-3 h-3" />
-                        {new Date(post.scheduled_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
+          </div>
+        ) : (
+          <div className="posts-table">
+            {/* Table header */}
+            <div className="pt-row pt-row--head">
+              <span>POST</span>
+              <span>SCHEDULED</span>
+              <span>PLATFORM</span>
+              <span>STATUS</span>
+              <span>IMPRESSIONS</span>
+              <span>ENGAGEMENT</span>
+              <span />
+            </div>
+
+            {filtered.map(post => {
+              const scheduledDate = post.scheduled_at
+                ? new Date(post.scheduled_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+                : post.published_at
+                ? new Date(post.published_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+                : '—'
+              const scheduledTime = post.scheduled_at
+                ? new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                : post.published_at
+                ? new Date(post.published_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+                : null
+
+              return (
+                <div key={post.id} className="pt-row">
+                  {/* Title + snippet */}
+                  <div className="pt-title">
+                    <strong>{post.content_pillar || 'Post'}</strong>
+                    <em>{post.content}</em>
+                  </div>
+
+                  {/* Scheduled date */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{ color: 'var(--ink-2)', fontWeight: 500 }}>{scheduledDate}</span>
+                    {scheduledTime && (
+                      <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{scheduledTime}</span>
                     )}
                   </div>
 
-                  <p
-                    className="overflow-hidden"
-                    style={{
-                      fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55,
-                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    }}
-                  >
-                    {post.content}
-                  </p>
+                  {/* Platform */}
+                  <span style={{ color: 'var(--ink-3)', fontFamily: 'var(--f-mono)', fontSize: 11.5 }}>
+                    LinkedIn
+                  </span>
 
-                  {post.image_urls && post.image_urls.length > 0 && (
-                    <div className="flex gap-1.5 mt-2">
-                      {post.image_urls.slice(0, 3).map((url, i) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={i} src={url} alt="" className="w-10 h-10 rounded-lg object-cover"
-                          style={{ border: '1px solid var(--line)' }} />
-                      ))}
-                      {post.image_urls.length > 3 && (
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ background: 'var(--surface-2)', fontSize: 11, color: 'var(--ink-4)', fontWeight: 600 }}
-                        >
-                          +{post.image_urls.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Status badge */}
+                  <span className={statusStateClass(post.status)}>
+                    {STATUS_LABEL[post.status] || post.status}
+                  </span>
 
-                  {post.status === 'published' && (post.reactions != null || post.impressions != null) && (
-                    <div className="flex gap-4 mt-2">
-                      {post.impressions != null && (
-                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                          <Eye className="w-3 h-3" /> {post.impressions.toLocaleString()}
-                        </span>
-                      )}
-                      {post.reactions != null && (
-                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                          <ThumbsUp className="w-3 h-3" /> {post.reactions}
-                        </span>
-                      )}
-                      {post.comments != null && (
-                        <span className="flex items-center gap-1" style={{ fontSize: 12, color: 'var(--ink-4)' }}>
-                          <MessageCircle className="w-3 h-3" /> {post.comments}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {/* Impressions */}
+                  <span className={post.impressions != null && post.impressions > 0 ? 'pt-up' : ''}>
+                    {post.impressions != null ? post.impressions.toLocaleString() : '—'}
+                  </span>
+
+                  {/* Engagement (reactions + comments) */}
+                  <span className={((post.reactions ?? 0) + (post.comments ?? 0)) > 0 ? 'pt-up' : ''}>
+                    {post.reactions != null || post.comments != null
+                      ? ((post.reactions ?? 0) + (post.comments ?? 0)).toLocaleString()
+                      : '—'}
+                  </span>
+
+                  {/* Actions */}
+                  <div className="pt-more" style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      onClick={() => openEdit(post)}
+                      className="btn-dash btn-dash--ghost btn-dash--sm"
+                      title="Edit post"
+                    >
+                      <Pencil />
+                    </button>
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      className="btn-dash btn-dash--ghost btn-dash--sm btn-dash--danger"
+                      title="Delete post"
+                      style={{ background: 'transparent', border: 'none' }}
+                    >
+                      <Trash2 />
+                    </button>
+                  </div>
                 </div>
-
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => openEdit(post)}
-                    className="flex items-center gap-1.5 transition-all hover:opacity-80"
-                    style={{
-                      fontSize: 12, fontWeight: 500, color: 'var(--ink-2)',
-                      border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
-                      padding: '5px 10px',
-                    }}
-                  >
-                    <Pencil className="size-3.5" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </button>
-                  <button
-                    onClick={() => deletePost(post.id)}
-                    className="flex items-center justify-center transition-all hover:opacity-80"
-                    style={{
-                      width: 30, height: 30,
-                      border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
-                      color: '#ef4444',
-                    }}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )
       )}
 
       {/* Calendar view */}
       {view === 'calendar' && (
         <div>
           {Object.keys(byDate).length === 0 ? (
-            <div
-              className="flex flex-col items-center justify-center py-16 text-center"
-              style={{ border: '1px solid var(--line)', borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}
-            >
-              <div
-                className="flex items-center justify-center mb-4"
-                style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}
-              >
-                <Calendar className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
+            <div className="posts-table">
+              <div className="db-empty">
+                <Calendar strokeWidth={1.5} />
+                <strong>No scheduled posts</strong>
+                <span>Schedule posts to see them in your calendar.</span>
               </div>
-              <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>No scheduled posts</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Schedule posts to see them in your calendar.</div>
             </div>
           ) : Object.entries(byDate).map(([month, monthPosts]) => (
-            <div key={month} className="mb-7">
-              <div style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--ink-4)', marginBottom: 10, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                // {month}
-              </div>
-              <div className="flex flex-col gap-2">
+            <div key={month} style={{ marginBottom: 28 }}>
+              <p className="db-screen__eyebrow" style={{ marginBottom: 10 }}>// {month}</p>
+              <div className="posts-table">
                 {monthPosts.map(post => (
                   <div
                     key={post.id}
-                    className="flex gap-3.5 items-center"
-                    style={{
-                      background: 'var(--surface)', border: '1px solid var(--line)',
-                      borderRadius: 'var(--r-lg)', padding: '12px 14px',
-                    }}
+                    className="pt-row"
+                    style={{ gridTemplateColumns: '52px 1px 1fr auto' }}
                   >
-                    <div className="text-center flex-shrink-0" style={{ width: 40 }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-0.03em' }}>
+                    {/* Day number */}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                         {new Date(post.scheduled_at || post.published_at!).getDate()}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', fontWeight: 500, marginTop: 2 }}>
                         {new Date(post.scheduled_at || post.published_at!).toLocaleDateString(undefined, { weekday: 'short' })}
                       </div>
                     </div>
-                    <div style={{ width: 1, height: 32, background: 'var(--line)', flexShrink: 0 }} />
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="overflow-hidden mb-1"
-                        style={{
-                          fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.45,
-                          display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        {post.content}
-                      </p>
-                      <div className="flex gap-2 items-center">
-                        <span style={{ fontSize: 11, fontWeight: 600, color: STATUS_COLOR[post.status] }}>{STATUS_LABEL[post.status]}</span>
-                        <span style={{ color: 'var(--line-2)', fontSize: 11 }}>·</span>
-                        <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--f-mono)' }}>
-                          {new Date(post.scheduled_at || post.published_at!).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
+
+                    {/* Divider */}
+                    <div style={{ width: 1, height: 32, background: 'var(--line)', alignSelf: 'center' }} />
+
+                    {/* Content */}
+                    <div className="pt-title">
+                      <strong>{post.content_pillar || 'Post'}</strong>
+                      <em>{post.content}</em>
                     </div>
-                    <button
-                      onClick={() => openEdit(post)}
-                      className="flex items-center gap-1.5 flex-shrink-0 transition-all hover:opacity-80"
-                      style={{
-                        fontSize: 12, fontWeight: 500, color: 'var(--ink-2)',
-                        border: '1px solid var(--line)', borderRadius: 'var(--r-sm)',
-                        padding: '5px 10px',
-                      }}
-                    >
-                      <Pencil className="size-3.5" /> Edit
-                    </button>
+
+                    {/* Status + edit */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span className={statusStateClass(post.status)}>
+                        {STATUS_LABEL[post.status]}
+                      </span>
+                      <button
+                        onClick={() => openEdit(post)}
+                        className="btn-dash btn-dash--ghost btn-dash--sm"
+                        title="Edit"
+                      >
+                        <Pencil />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
