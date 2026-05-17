@@ -461,10 +461,15 @@ function GenerateContent() {
     try {
       const tonePrefix = selectedTone ? `Write in a ${selectedTone.toLowerCase()} tone. ` : ''
       const body: Record<string, unknown> = { additionalContext: tonePrefix + additionalContext }
-      if (tab === 'prompt') body.topic = topic
-      if (tab === 'voice')  body.voiceNoteId = voiceNoteId
-      if (tab === 'story') {
-        const storyId = overrideStoryId || selectedStory?.id
+      // overrideStoryId is always a story-bank generation regardless of current tab state
+      if (overrideStoryId) {
+        body.storyBankId = overrideStoryId
+      } else if (tab === 'prompt') {
+        body.topic = topic
+      } else if (tab === 'voice') {
+        body.voiceNoteId = voiceNoteId
+      } else if (tab === 'story') {
+        const storyId = selectedStory?.id
         if (storyId) body.storyBankId = storyId
       }
       if (selectedImages.length > 0) body.imageIds = selectedImages.map(img => img.id)
@@ -818,14 +823,16 @@ function GenerateContent() {
                       </div>
                     ))}
                   </div>
-                  {selectedStory && (
+                  {(selectedStory || initStoryId) && (
                     <div className="gen-card">
-                      <div className="db-field">
-                        <label className="db-label" htmlFor="story-ctx">Additional context <span style={{ fontWeight: 400, opacity: .7 }}>(optional)</span></label>
-                        <input id="story-ctx" value={additionalContext} onChange={e => setAdditionalContext(e.target.value)}
-                          placeholder="e.g. Make it inspirational, add a question at the end"
-                          className="db-input" />
-                      </div>
+                      {selectedStory && (
+                        <div className="db-field">
+                          <label className="db-label" htmlFor="story-ctx">Additional context <span style={{ fontWeight: 400, opacity: .7 }}>(optional)</span></label>
+                          <input id="story-ctx" value={additionalContext} onChange={e => setAdditionalContext(e.target.value)}
+                            placeholder="e.g. Make it inspirational, add a question at the end"
+                            className="db-input" />
+                        </div>
+                      )}
                       <div className="g-actions">
                         <button onClick={() => handleGenerate()} disabled={loading || !canGenerate} className="btn-dash btn-dash--primary btn-dash--lg" style={{ width: '100%', justifyContent: 'center' }}>
                           {loading
@@ -949,8 +956,19 @@ function GenerateContent() {
             </div>
           )}
 
+          {/* Loading state for right column during auto-generate */}
+          {loading && !selectedPost && generatedPosts.length === 0 && (
+            <div className="gen-card gen-card--ghost">
+              <div className="db-empty">
+                <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
+                <strong style={{ color: 'var(--ink)' }}>{loadingMsg}</strong>
+                <span>Writing in your voice…</span>
+              </div>
+            </div>
+          )}
+
           {/* Empty state for right column */}
-          {!selectedPost && generatedPosts.length === 0 && (
+          {!loading && !selectedPost && generatedPosts.length === 0 && (
             <div className="gen-card gen-card--ghost">
               <div className="db-empty">
                 <Sparkles size={28} style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
