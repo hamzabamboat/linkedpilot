@@ -387,15 +387,16 @@ function GenerateContent() {
   }, [])
 
   async function loadStories() {
-    const meRes = await fetch('/api/me')
-    const { user } = await meRes.json()
-    if (!user) return
-    const { data } = await supabase.from('story_bank').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    setStories(data || [])
-    if (initStoryId && data) {
-      const match = data.find((s: StoryBank) => s.id === initStoryId)
-      if (match) setSelectedStory(match)
-    }
+    try {
+      const res = await fetch('/api/story-bank')
+      if (!res.ok) return
+      const { stories: data } = await res.json()
+      setStories(data || [])
+      if (initStoryId && data) {
+        const match = data.find((s: StoryBank) => s.id === initStoryId)
+        if (match) setSelectedStory(match)
+      }
+    } catch { /* non-fatal */ }
   }
 
   async function startRecording() {
