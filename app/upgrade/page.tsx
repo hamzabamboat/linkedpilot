@@ -160,10 +160,19 @@ export default function UpgradePage() {
       {processor === 'razorpay' && <Script src="https://checkout.razorpay.com/v1/checkout.js" />}
       <div className="min-h-screen bg-slate-50">
         <div className="bg-white border-b border-slate-200 px-6">
-          <div className="max-w-[860px] mx-auto h-16 flex items-center">
+          <div className="max-w-[860px] mx-auto h-16 flex items-center justify-between">
             <div className="bg-white rounded-xl px-3 py-1.5 inline-flex items-center justify-center shadow-sm border border-slate-100 logo-always-white">
               <img src="/logo-text.png" alt="PersonaLink" width={180} height={28} className="h-7 w-auto" />
             </div>
+            <button
+              onClick={async () => {
+                await fetch('/api/auth/logout', { method: 'POST' })
+                window.location.href = '/'
+              }}
+              className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Sign out
+            </button>
           </div>
         </div>
 
