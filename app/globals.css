@@ -383,6 +383,24 @@ html[data-theme="dark"] .pl-mesh { opacity: .55; filter: blur(80px); }
 }
 
 
+/* Tab bar — hide scrollbar while keeping scroll enabled for very small screens */
+.tabs-overflow {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs-overflow::-webkit-scrollbar {
+  display: none;
+}
+
+/* Main content bottom padding — clears mobile bottom nav including safe area on notched phones */
+.pb-nav-safe {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .pb-nav-safe { padding-bottom: 0; }
+}
+
 /* Sidebar width tokens */
 :root {
   --sidebar-full: 240px;
