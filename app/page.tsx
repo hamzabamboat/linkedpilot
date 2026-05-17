@@ -292,11 +292,6 @@ function HomeContent() {
               >{label}</a>
             ))}
             <div style={{ margin: '0 4px' }}><AppearanceTrigger variant="nav" /></div>
-            <a href="/dashboard" style={{
-              padding: '8px 16px', fontSize: 14, fontWeight: 500, borderRadius: 'var(--r-sm)',
-              color: 'var(--ink-2)', textDecoration: 'none', border: '1px solid var(--line)',
-              background: 'transparent', transition: 'all .15s',
-            }}>Sign in</a>
             <button onClick={handleLinkedInAuth} style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '9px 18px', fontSize: 14, fontWeight: 600,
