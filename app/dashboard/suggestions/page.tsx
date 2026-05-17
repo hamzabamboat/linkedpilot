@@ -18,11 +18,11 @@ function formatAge(createdAt: string): { label: string; fresh: boolean } {
 
 import { toast } from 'sonner'
 import {
-  RefreshCw, Flame, TrendingUp, BookOpen, Repeat2, Lightbulb, X,
+  RefreshCw, Flame, TrendingUp, Repeat2, Lightbulb, X,
   ArrowRight, Zap, Lock, ThumbsUp, Eye,
 } from 'lucide-react'
 
-type SuggestionTab = 'trending' | 'history' | 'stories' | 'repurpose'
+type SuggestionTab = 'trending' | 'history' | 'repurpose'
 
 const SOURCE_LABEL: Record<string, string> = {
   news: 'Trending', trends: 'Trending', history: 'Your History', story_bank: 'Story Bank',
@@ -127,11 +127,10 @@ export default function SuggestionsPage() {
   const tabs: { id: SuggestionTab; label: string; icon: React.ElementType; count?: number; locked?: boolean }[] = [
     { id: 'trending', label: 'Trending', icon: Flame, count: bySource.trending.length },
     { id: 'history', label: 'Your History', icon: TrendingUp, count: bySource.history.length },
-    { id: 'stories', label: 'Story Bank', icon: BookOpen, count: bySource.stories.length },
     { id: 'repurpose', label: 'Repurpose', icon: Repeat2, locked: plan === 'starter' },
   ]
 
-  const currentSuggestions = tab === 'trending' ? bySource.trending : tab === 'history' ? bySource.history : bySource.stories
+  const currentSuggestions = tab === 'trending' ? bySource.trending : bySource.history
 
   return (
     <div className="p-3 sm:p-4 md:p-7 w-full">
@@ -202,8 +201,7 @@ export default function SuggestionsPage() {
             <div className="flex items-center justify-center mb-4"
               style={{ width: 48, height: 48, borderRadius: 'var(--r-md)', background: 'var(--surface-2)', border: '1px solid var(--line)' }}>
               {tab === 'trending' ? <Flame className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
-                : tab === 'history' ? <TrendingUp className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />
-                : <BookOpen className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />}
+                : <TrendingUp className="w-5 h-5" style={{ color: 'var(--ink-4)' }} strokeWidth={1.5} />}
             </div>
             <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>No suggestions yet</div>
             <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>Click &ldquo;Refresh Ideas&rdquo; to generate fresh post ideas.</div>
