@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, Post } from '@/lib/supabase'
 import Link from 'next/link'
 import {
-  ThumbsUp, Eye, FileEdit, BarChart3, Zap, Trophy, TrendingUp, RefreshCw, Sparkles,
+  ThumbsUp, Eye, FileEdit, BarChart3, Zap, Trophy, TrendingUp, Sparkles,
 } from 'lucide-react'
 
 type ScoreRecord = { score: number; recorded_at: string }
@@ -78,11 +78,9 @@ export default function AnalyticsPage() {
   const [scores, setScores] = useState<ScoreRecord[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [userId, setUserId] = useState<string | null>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<ProfileAnalysis | null>(null)
-  const [analysing, setAnalysing] = useState(false)
-  const [analysisMsg, setAnalysisMsg] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
 
   async function fetchData(uid: string) {
     const [scoresRes, postsRes] = await Promise.all([
@@ -120,30 +118,38 @@ export default function AnalyticsPage() {
     } catch { /* non-fatal */ }
   }, [])
 
-  async function runFetchAnalysis() {
-    if (!userId || analysing) return
-    setAnalysing(true)
-    setAnalysisMsg(null)
+  async function refreshAnalytics() {
+    if (!userId || refreshing) return
+    setRefreshing(true)
+    setRefreshMsg(null)
     try {
+      const syncRes = await fetch('/api/linkedin/sync-stats', { method: 'POST' })
+      const syncData = await syncRes.json()
+      if (!syncRes.ok) {
+        setRefreshMsg(syncData.error || 'Sync failed')
+        return
+      }
+      if (syncData.synced > 0) await fetchData(userId)
+
       const res = await fetch('/api/profile/analyse', { method: 'POST' })
       const data = await res.json()
       if (res.status === 429) {
-        setAnalysisMsg(data.error || 'Limit reached — try again later.')
+        setRefreshMsg(data.error || 'Limit reached — try again later.')
         return
       }
       if (!res.ok || data.error) {
-        setAnalysisMsg(data.error || 'Analysis failed. Please try again.')
+        setRefreshMsg(data.error || 'Analysis failed. Please try again.')
         return
       }
       const analysisResult: ProfileAnalysis = { ...data, analysed_at: new Date().toISOString() }
       setAnalysis(analysisResult)
       localStorage.setItem(LS_KEY_PREFIX + userId, JSON.stringify(analysisResult))
-      setAnalysisMsg(null)
+      setRefreshMsg(null)
     } catch {
-      setAnalysisMsg('Analysis failed. Please try again.')
+      setRefreshMsg('Refresh failed. Please try again.')
     } finally {
-      setAnalysing(false)
-      setTimeout(() => setAnalysisMsg(null), 8000)
+      setRefreshing(false)
+      setTimeout(() => setRefreshMsg(null), 8000)
     }
   }
 
@@ -174,23 +180,6 @@ export default function AnalyticsPage() {
     return () => { cancelled = true }
   }, [fetchAnalysis])
 
-  async function syncFromLinkedIn() {
-    if (!userId) return
-    setSyncing(true); setSyncMsg(null)
-    try {
-      const res = await fetch('/api/linkedin/sync-stats', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) { setSyncMsg(data.error || 'Sync failed') }
-      else {
-        const base = data.message || `Synced ${data.synced} of ${data.total} posts`
-        setSyncMsg(data.warning ? `${base}. ${data.warning}` : base)
-        if (data.synced > 0) await fetchData(userId)
-      }
-    } catch { setSyncMsg('Sync failed. Please try again.') } finally {
-      setSyncing(false)
-      setTimeout(() => setSyncMsg(null), 8000)
-    }
-  }
 
   if (loading) {
     return (
@@ -280,36 +269,22 @@ export default function AnalyticsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={runFetchAnalysis}
-              disabled={analysing}
+              onClick={refreshAnalytics}
+              disabled={refreshing}
               className="flex items-center gap-1.5 transition-all hover:opacity-80"
               style={{
                 border: '1px solid var(--pl-accent)', borderRadius: 'var(--r-sm)', padding: '7px 14px',
                 fontSize: 13, fontWeight: 500, color: 'var(--pl-accent)', background: 'var(--pl-accent-soft)',
-                opacity: analysing ? 0.6 : 1,
+                opacity: refreshing ? 0.6 : 1,
               }}
             >
-              <Sparkles className={`w-3.5 h-3.5 ${analysing ? 'animate-pulse' : ''}`} />
-              {analysing ? 'Analysing…' : 'Fetch Profile Analytics'}
-            </button>
-            <button
-              type="button"
-              onClick={syncFromLinkedIn}
-              disabled={syncing}
-              className="flex items-center gap-1.5 transition-all hover:opacity-80"
-              style={{
-                border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '7px 14px',
-                fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', background: 'var(--surface)',
-                opacity: syncing ? 0.6 : 1,
-              }}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing…' : 'Sync LinkedIn'}
+              <Sparkles className={`w-3.5 h-3.5 ${refreshing ? 'animate-pulse' : ''}`} />
+              {refreshing ? 'Refreshing…' : 'Refresh Analytics'}
             </button>
           </div>
-          {(analysisMsg || syncMsg) && (
+          {refreshMsg && (
             <p style={{ fontSize: 12, color: 'var(--ink-4)', textAlign: 'right' }}>
-              {analysisMsg || syncMsg}
+              {refreshMsg}
             </p>
           )}
           {analysis?.analysed_at && !analysisMsg && (
