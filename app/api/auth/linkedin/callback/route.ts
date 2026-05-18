@@ -264,8 +264,9 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('linkedin_oauth_state')
     return response
   } catch (err) {
-    console.error('[linkedin/callback] unhandled error:', err)
-    const res = NextResponse.redirect(`${APP_URL}/?error=oauth_failed`)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[linkedin/callback] unhandled error:', msg, err)
+    const res = NextResponse.redirect(`${APP_URL}/?error=oauth_failed&detail=${encodeURIComponent(msg)}`)
     res.cookies.delete('linkedin_oauth_state')
     res.cookies.delete('agency_oauth_client_user_id')
     return res
