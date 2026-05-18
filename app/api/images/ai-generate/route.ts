@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       response_format: 'url',
     })
 
-    const imageUrl = response.data[0]?.url
+    const imageUrl = response.data?.[0]?.url
     if (!imageUrl) return NextResponse.json({ error: 'Image generation failed' }, { status: 500 })
 
     // Download the generated image (OpenAI URLs expire after ~1 hour)

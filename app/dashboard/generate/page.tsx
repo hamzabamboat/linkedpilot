@@ -573,11 +573,11 @@ function GenerateContent() {
       {/* ── Tabs ── */}
       <div className="gen-tabs">
         {([
-          { id: 'prompt', label: 'From a prompt',      icon: Brain },
-          { id: 'voice',  label: 'From a voice note', icon: Mic,      badge: plan === 'starter' ? 'STD+' : undefined },
-          { id: 'story',  label: 'From your story bank', icon: BookOpen },
-          { id: 'bulk',   label: 'Bulk · plan a month',  icon: Sparkles },
-        ] as const).map(({ id, label, icon: Icon, badge }) => (
+          { id: 'prompt', label: 'From a prompt',         icon: Brain },
+          { id: 'voice',  label: 'From a voice note',     icon: Mic,      badge: plan === 'starter' ? 'STD+' : undefined },
+          { id: 'story',  label: 'From your story bank',  icon: BookOpen, badge: undefined },
+          { id: 'bulk',   label: 'Bulk · plan a month',   icon: Sparkles, badge: undefined },
+        ] as Array<{ id: string; label: string; icon: React.ElementType; badge?: string }>).map(({ id, label, icon: Icon, badge }) => (
           <button key={id} onClick={() => setTab(id as Tab)} className={`gtab${tab === id ? ' is-on' : ''}`}>
             <Icon size={14} /> {label}
             {badge && <span className="trend-tag" style={{ fontSize: 9, padding: '2px 5px' }}>{badge}</span>}

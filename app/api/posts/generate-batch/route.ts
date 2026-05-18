@@ -373,7 +373,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     postsGenerated: insertedPosts?.length || 0,
-    storyPostsGenerated: usedStoryIds.length,
+    storyPostsGenerated: convertedStoryIds.length,
     monthName,
     nextPostDate,
     controlPreference,
