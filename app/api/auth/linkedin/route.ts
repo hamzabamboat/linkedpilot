@@ -10,7 +10,7 @@ import { cookies } from 'next/headers'
 
 export async function GET() {
   const clientId = process.env.LINKEDIN_CLIENT_ID!
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/linkedin/callback`
+  const redirectUri = 'https://www.personalink.in/api/auth/linkedin/callback'
   const scope = 'openid profile email w_member_social'
   const state = crypto.randomUUID()
 
