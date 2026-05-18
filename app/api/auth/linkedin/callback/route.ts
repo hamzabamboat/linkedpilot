@@ -257,6 +257,9 @@ export async function GET(request: NextRequest) {
       new Date(sub.trial_ends_at) > new Date()
     ) {
       response.cookies.set('sub_status', 'trial', { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
+      // Store the actual expiry so middleware can validate the trial without a
+      // DB round-trip, preventing stale-cache redirect loops on expired trials
+      response.cookies.set('trial_ends_at', sub.trial_ends_at, { ...cookieOpts, maxAge: 60 * 60 * 24 * 8 })
     }
     response.cookies.delete('linkedin_oauth_state')
     return response
