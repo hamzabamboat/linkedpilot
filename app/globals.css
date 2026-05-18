@@ -29,6 +29,7 @@
   --pl-accent-soft: #e8edff;
   --pl-accent-glow: 43 77 255;
   --serif-ink: #1a2244;
+  --pricing-popular-bg: #0a1024;
 
   --sh-1: 0 1px 2px rgba(10,16,36,.04), 0 1px 1px rgba(10,16,36,.03);
   --sh-2: 0 8px 32px -8px rgba(10,16,36,.10), 0 2px 8px -2px rgba(10,16,36,.06);
@@ -47,6 +48,7 @@ html[data-theme="dark"] {
   --pl-accent-soft: rgba(43,77,255,.14);
   --pl-accent-glow: 107 134 255;
   --serif-ink: #eef2fb;
+  --pricing-popular-bg: #1a2545;
 
   --sh-1: 0 1px 2px rgba(0,0,0,.4);
   --sh-2: 0 8px 32px -8px rgba(0,0,0,.5), 0 2px 8px -2px rgba(0,0,0,.35);

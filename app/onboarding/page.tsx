@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
 import { getCurrency } from '@/lib/currency'
 import { toast } from 'sonner'
@@ -53,8 +54,16 @@ export default function OnboardingPage() {
   const [codeError, setCodeError] = useState('')
   const [appliedCode, setAppliedCode] = useState<{ code: string; plan: string } | null>(null)
   const [showCodeField, setShowCodeField] = useState(false)
+  const onboardingStartFiredRef = useRef(false)
 
   useEffect(() => { document.title = 'Getting Started — PersonaLink' }, [])
+
+  useEffect(() => {
+    if (!onboardingStartFiredRef.current) {
+      onboardingStartFiredRef.current = true
+      posthog.capture('onboarding_started')
+    }
+  }, [])
 
   useEffect(() => {
     const match = document.cookie.match(/user_country=([^;]+)/)
@@ -271,6 +280,7 @@ export default function OnboardingPage() {
             </div>
             <NavButtons onNext={() => {
               if (wordCount < 40) { setError('Please write at least 40 words so we can analyse your voice.'); return }
+              posthog.capture('voice_samples_submitted', { sample_count: 1 })
               nextStep()
             }} onPrev={prevStep} step={step} />
           </div>

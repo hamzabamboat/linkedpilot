@@ -1253,7 +1253,7 @@ function HomeContent() {
                 <FadeUp key={plan.id}>
                   <div style={{
                     position: 'relative', height: '100%',
-                    background: plan.popular ? 'var(--ink)' : 'var(--surface)',
+                    background: plan.popular ? 'var(--pricing-popular-bg)' : 'var(--surface)',
                     border: plan.popular ? 'none' : '1px solid var(--line)',
                     borderRadius: 'var(--r-lg)', padding: '28px', boxShadow: plan.popular ? 'var(--sh-3)' : 'var(--sh-1)',
                     display: 'flex', flexDirection: 'column',
@@ -1455,7 +1455,7 @@ function HomeContent() {
         <div style={{ maxWidth: 'var(--max)', margin: '0 auto', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'clamp(40px,6vw,80px)', paddingBottom: 'clamp(40px,5vw,64px)' }}>
           {/* Brand */}
           <div style={{ maxWidth: 280 }}>
-            <WordMark />
+            <WordMark variant="dark" />
             <p style={{ marginTop: 16, fontSize: 14, color: 'rgba(255,255,255,.35)', lineHeight: 1.7 }}>
               Your LinkedIn, on autopilot — without sounding like everyone else&apos;s autopilot.
             </p>

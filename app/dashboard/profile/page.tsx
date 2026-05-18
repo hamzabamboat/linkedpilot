@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import posthog from 'posthog-js'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { UserProfile, Post } from '@/lib/supabase'
@@ -74,6 +75,7 @@ export default function ProfilePage() {
       const res = await fetch('/api/voice/retrain', { method: 'POST' })
       const data = await res.json()
       if (data.error) { toast.error('Could not re-train: ' + data.error); return }
+      posthog.capture('voice_recalibrated')
       toast.success('Voice fingerprint updated!')
       // Reload profile
       const me = await fetch('/api/me')
