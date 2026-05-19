@@ -148,7 +148,7 @@ function UpgradeContent() {
                   ₹{plan.price.toLocaleString('en-IN')}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink-4)' }}>/mo</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 20, fontFamily: 'var(--f-mono)' }}>
-                  {plan.posts} posts/month · ₹{Math.round(plan.price / plan.posts)}/post
+                  {plan.posts} posts/month
                 </div>
                 <div className="flex flex-col gap-2.5 mb-6">
                   {plan.features.map(f => (
