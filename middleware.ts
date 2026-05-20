@@ -185,8 +185,17 @@ export async function middleware(request: NextRequest) {
       return redirect('/dashboard')
     }
 
-    // Logged in but no active subscription
+    // Logged in but no active subscription — only send to /upgrade if onboarding is done
     if (pathname === '/') {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('onboarding_completed_at')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (!profile?.onboarding_completed_at) {
+        return redirect('/onboarding')
+      }
       return redirect('/upgrade')
     }
     // pathname === '/upgrade' — fall through to NextResponse.next() below
