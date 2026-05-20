@@ -11,6 +11,9 @@ export async function POST(request: NextRequest) {
   const plan = (body.plan || 'standard') as DodoPlan
   const currency = (body.currency || 'USD') as DodoCurrency
   const accountId = body.account_id as string | undefined
+  // force_new=true means this request is from the /upgrade page — never do a plan
+  // change, always require a fresh checkout. false (default) = settings page context.
+  const forceNew = body.force_new === true
 
   const planConfig = DODO_PLANS[plan]?.[currency]
   if (!planConfig?.productId) {
@@ -25,18 +28,28 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (existingSub?.status === 'active' && existingSub.dodo_subscription_id) {
-    // Existing active subscriber — change their plan instead of creating a new subscription
+    if (forceNew) {
+      // Called from /upgrade — user somehow reached the page while already active.
+      // Don't do a plan change; just send them back to the dashboard.
+      return NextResponse.json({ error: 'You already have an active subscription.' }, { status: 409 })
+    }
+    // Called from settings — try to change their plan without a new checkout
     const dodo = getDodo()
-    await dodo.subscriptions.changePlan(existingSub.dodo_subscription_id, {
-      product_id: planConfig.productId,
-      proration_billing_mode: 'prorated_immediately',
-      quantity: 1,
-    })
-    await supabaseAdmin
-      .from('subscriptions')
-      .update({ currency, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-    return NextResponse.json({ upgraded: true, plan, currency })
+    try {
+      await dodo.subscriptions.changePlan(existingSub.dodo_subscription_id, {
+        product_id: planConfig.productId,
+        proration_billing_mode: 'prorated_immediately',
+        quantity: 1,
+      })
+      await supabaseAdmin
+        .from('subscriptions')
+        .update({ currency, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+      return NextResponse.json({ upgraded: true, plan, currency })
+    } catch (err) {
+      // changePlan failed (e.g. env mismatch, invalid sub ID) — fall through to new checkout
+      console.error('[dodo/create-subscription] changePlan failed, falling back to checkout:', err)
+    }
   }
 
   // Allow checkout when the trial has expired; block if it's still running
@@ -83,19 +96,31 @@ export async function POST(request: NextRequest) {
 
   const dodo = getDodo()
 
-  const subscription = await dodo.subscriptions.create({
-    billing: { city: '', country: 'US', state: '', street: '', zipcode: '' },
-    customer: {
-      email: userData?.email ?? '',
-      name: userData?.linkedin_name ?? 'User',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any,
-    product_id: planConfig.productId,
-    quantity: 1,
-    payment_link: true,
-    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=1`,
-    metadata: { user_id: user.id, account_id: resolvedAccountId ?? '', plan, currency },
-  })
+  let subscription: Awaited<ReturnType<typeof dodo.subscriptions.create>>
+  try {
+    subscription = await dodo.subscriptions.create({
+      billing: { city: '', country: 'US', state: '', street: '', zipcode: '' },
+      customer: {
+        email: userData?.email ?? '',
+        name: userData?.linkedin_name ?? 'User',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      product_id: planConfig.productId,
+      quantity: 1,
+      payment_link: true,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=1`,
+      metadata: { user_id: user.id, account_id: resolvedAccountId ?? '', plan, currency },
+    })
+  } catch (err) {
+    console.error('[dodo/create-subscription] Dodo API error:', err)
+    const message = err instanceof Error ? err.message : 'Payment provider error'
+    return NextResponse.json({ error: message }, { status: 502 })
+  }
+
+  if (!subscription.payment_link) {
+    console.error('[dodo/create-subscription] No payment_link returned for subscription', subscription.subscription_id)
+    return NextResponse.json({ error: 'No checkout URL returned from payment provider' }, { status: 502 })
+  }
 
   // Update the subscription row (overwrites the trial row with the new Dodo sub)
   await supabaseAdmin.from('subscriptions').upsert(

@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Script from 'next/script'
 import posthog from 'posthog-js'
 import { CONTENT_PILLARS, PLAN_FEATURES } from '@/lib/supabase'
-import { getCurrency } from '@/lib/currency'
+import { getCurrency, getPaymentProcessor } from '@/lib/currency'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -143,7 +144,56 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (!res.ok || data.error) { setError(data.error || 'Failed to save'); setSaving(false); return }
       sessionStorage.removeItem(STORAGE_KEY)
-      router.push('/dashboard')
+
+      const processor = getPaymentProcessor(userCountry)
+      const currencyInfo = getCurrency(userCountry)
+
+      if (processor === 'dodo') {
+        const subRes = await fetch('/api/dodo/create-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: form.plan, currency: currencyInfo.code, force_new: true }),
+        })
+        const subData = await subRes.json()
+        if (subData.error) { setError(subData.error); setSaving(false); return }
+        if (!subData.checkout_url) { setError('No checkout link returned. Please try again.'); setSaving(false); return }
+        window.location.href = subData.checkout_url
+        return
+      }
+
+      // Razorpay for Indian users
+      const subRes = await fetch('/api/razorpay/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: form.plan }),
+      })
+      const subData = await subRes.json()
+      if (subData.error) { setError(subData.error); setSaving(false); return }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rzp = new (window as any).Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        subscription_id: subData.subscription_id,
+        name: 'PersonaLink',
+        description: `${form.plan.charAt(0).toUpperCase() + form.plan.slice(1)} Plan — 7-day free trial`,
+        theme: { color: '#0A66C2' },
+        handler: async (response: { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string }) => {
+          const verifyRes = await fetch('/api/razorpay/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_subscription_id: response.razorpay_subscription_id,
+              razorpay_signature: response.razorpay_signature,
+              plan: form.plan,
+            }),
+          })
+          const verifyData = await verifyRes.json()
+          if (verifyData.error) { setError('Payment verification failed. Please email support@personalink.in'); setSaving(false); return }
+          window.location.href = '/dashboard'
+        },
+        modal: { ondismiss: () => setSaving(false) },
+      })
+      rzp.open()
     } catch {
       setError('Network error. Please try again.')
       setSaving(false)
@@ -159,6 +209,8 @@ export default function OnboardingPage() {
   }))
 
   return (
+    <>
+    {getPaymentProcessor(userCountry) === 'razorpay' && <Script src="https://checkout.razorpay.com/v1/checkout.js" />}
     <div className="min-h-screen relative" style={{ background: 'var(--bg)' }}>
       <QuarterRings size={400} color="blue" opacity={0.05} className="fixed bottom-0 right-0 pointer-events-none hidden lg:block" />
       {/* Header */}
@@ -498,6 +550,7 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+    </>
   )
 }
 
