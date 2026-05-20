@@ -322,15 +322,20 @@ export async function middleware(request: NextRequest) {
   // DB error — be permissive
   if (subErr) return NextResponse.next()
 
-  const hasActiveSub     = sub?.status === 'active'
-  const isTrial          =
+  const hasActiveSub = sub?.status === 'active'
+  const isTrial      =
     (sub?.status === 'trial' || sub?.status === 'trialing') &&
     !!sub.trial_ends_at &&
     new Date(sub.trial_ends_at) > new Date()
+  // Only grant a brief grace period when returning from the payment provider
+  // (return_url includes ?upgraded=1). Direct navigation to /dashboard never
+  // gets this window, so clicking "Start Free Trial" then abandoning checkout
+  // cannot be used to bypass the paywall.
   const isPaymentPending =
     sub?.status === 'created' &&
     !!sub.updated_at &&
-    Date.now() - new Date(sub.updated_at).getTime() < 10 * 60 * 1000
+    Date.now() - new Date(sub.updated_at).getTime() < 2 * 60 * 1000 &&
+    request.nextUrl.searchParams.get('upgraded') === '1'
 
   if (!hasActiveSub && !isTrial && !isPaymentPending) {
     // No valid subscription — send to the upgrade page.

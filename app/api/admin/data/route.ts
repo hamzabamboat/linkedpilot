@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     plan = plan ?? 'starter'
 
     const subStatus = sub?.status ?? u.subscription_status ?? 'inactive'
-    const processor = sub?.payment_processor ?? 'razorpay'
+    const processor = sub?.payment_processor ?? (sub?.dodo_subscription_id ? 'dodo' : 'razorpay')
     const currency = sub?.currency ?? 'INR'
 
     return {

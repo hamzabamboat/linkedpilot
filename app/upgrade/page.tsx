@@ -47,6 +47,12 @@ export default function UpgradePage() {
           router.replace('/')
           return
         }
+        // Already has access — redirect to dashboard
+        const status = data.subscription?.status
+        if (status === 'active' || status === 'trialing' || status === 'trial') {
+          router.replace('/dashboard')
+          return
+        }
         setUser(data.user)
         setLoading(false)
       } catch {
@@ -73,10 +79,11 @@ export default function UpgradePage() {
         const res = await fetch('/api/dodo/create-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: plan.id, currency: currencyInfo.code }),
+          body: JSON.stringify({ plan: plan.id, currency: currencyInfo.code, force_new: true }),
         })
         const data = await res.json()
         if (data.error) { toast.error(data.error); setUpgradingPlan(null); return }
+        if (!data.checkout_url) { toast.error('No checkout link returned. Please try again.'); setUpgradingPlan(null); return }
         window.location.href = data.checkout_url
       } catch {
         toast.error('Something went wrong. Please try again.')
