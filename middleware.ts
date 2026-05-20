@@ -350,6 +350,9 @@ export async function middleware(request: NextRequest) {
 
   // Valid subscription — let through and refresh the cache
   const res = NextResponse.next()
+  if (!request.cookies.get('user_country')) {
+    res.cookies.set('user_country', country, { maxAge: 60 * 60 * 24 * 30, path: '/' })
+  }
   const cookieOpts = {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',

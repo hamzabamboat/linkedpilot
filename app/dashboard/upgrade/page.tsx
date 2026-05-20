@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import posthog from 'posthog-js'
 import { PLAN_FEATURES } from '@/lib/supabase'
+import { getCurrency } from '@/lib/currency'
 import { ChevronLeft, Check, BarChart3, Mic, Repeat2, Zap, Users, CheckCircle2 } from 'lucide-react'
 
 const FEATURE_MAP: Record<string, { title: string; desc: string; icon: React.ElementType; iconColor: string; minPlan: string }> = {
@@ -15,22 +16,29 @@ const FEATURE_MAP: Record<string, { title: string; desc: string; icon: React.Ele
   team: { title: 'Team Mode', desc: 'Manage up to 3 LinkedIn profiles from a single dashboard. Perfect for agencies and founders with multiple brands.', icon: Users, iconColor: '#059669', minPlan: 'Pro' },
 }
 
-const ALL_PLANS = [
-  { id: 'standard', label: 'Standard', price: 2499, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
-  { id: 'pro', label: 'Pro', price: 4999, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed', popular: false },
-]
-
 function UpgradeContent() {
   const searchParams = useSearchParams()
   const feature = searchParams.get('feature') || ''
   const info = FEATURE_MAP[feature]
   const [currentPlan, setCurrentPlan] = useState<string | null>(null)
+  const [userCountry, setUserCountry] = useState('IN')
+
+  useEffect(() => {
+    const match = document.cookie.match(/user_country=([^;]+)/)
+    if (match) setUserCountry(match[1])
+  }, [])
 
   useEffect(() => {
     fetch('/api/me').then(r => r.json()).then(d => {
       setCurrentPlan(d.profile?.plan || 'starter')
     }).catch(() => setCurrentPlan('starter'))
   }, [])
+
+  const currencyInfo = getCurrency(userCountry)
+  const ALL_PLANS = [
+    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#0A66C2', popular: true },
+    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed', popular: false },
+  ]
 
   const plansToShow = currentPlan === 'standard'
     ? ALL_PLANS.filter(p => p.id === 'pro').map(p => ({ ...p, popular: false }))
@@ -145,7 +153,7 @@ function UpgradeContent() {
                   // {plan.label}
                 </div>
                 <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.04em', marginBottom: 2 }}>
-                  ₹{plan.price.toLocaleString('en-IN')}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink-4)' }}>/mo</span>
+                  {currencyInfo.symbol}{plan.price.toLocaleString()}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink-4)' }}>/mo</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 20, fontFamily: 'var(--f-mono)' }}>
                   {plan.posts} posts/month
