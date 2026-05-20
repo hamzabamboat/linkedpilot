@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDodo, DODO_PLANS, DodoPlan, DodoCurrency } from '@/lib/dodo'
+import { getDodo, DODO_PLANS, DODO_ANNUAL_PLANS, DodoPlan, DodoCurrency, BillingPeriod } from '@/lib/dodo'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -10,12 +10,14 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const plan = (body.plan || 'standard') as DodoPlan
   const currency = (body.currency || 'USD') as DodoCurrency
+  const billingPeriod = (body.billing_period || 'monthly') as BillingPeriod
   const accountId = body.account_id as string | undefined
   // force_new=true means this request is from the /upgrade page — never do a plan
   // change, always require a fresh checkout. false (default) = settings page context.
   const forceNew = body.force_new === true
 
-  const planConfig = DODO_PLANS[plan]?.[currency]
+  const planTable = billingPeriod === 'annual' ? DODO_ANNUAL_PLANS : DODO_PLANS
+  const planConfig = planTable[plan]?.[currency]
   if (!planConfig?.productId) {
     return NextResponse.json({ error: 'Invalid plan or currency' }, { status: 400 })
   }
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
       quantity: 1,
       payment_link: true,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=1`,
-      metadata: { user_id: user.id, account_id: resolvedAccountId ?? '', plan, currency },
+      metadata: { user_id: user.id, account_id: resolvedAccountId ?? '', plan, currency, billing_period: billingPeriod },
     })
   } catch (err) {
     console.error('[dodo/create-subscription] Dodo API error:', err)
@@ -147,6 +149,7 @@ export async function POST(request: NextRequest) {
     checkout_url: subscription.payment_link,
     plan,
     currency,
+    billing_period: billingPeriod,
     account_id: resolvedAccountId,
   })
 }

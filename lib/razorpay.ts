@@ -16,6 +16,13 @@ export const PLAN_IDS: Record<string, string> = {
   pro: process.env.RAZORPAY_PLAN_ID_PERSONALINK_PRO_PLAN || process.env.RAZORPAY_PLAN_ID_PRO || process.env.RAZORPAY_PLAN_ID!,
 }
 
+// Annual plans — 25% off monthly × 12. Create in Razorpay with period: 'yearly', interval: 1.
+export const ANNUAL_PLAN_IDS: Record<string, string> = {
+  starter: process.env.RAZORPAY_PLAN_ID_STARTER_ANNUAL!,
+  standard: process.env.RAZORPAY_PLAN_ID_STANDARD_ANNUAL!,
+  pro: process.env.RAZORPAY_PLAN_ID_PRO_ANNUAL!,
+}
+
 // Legacy single plan ID
 export const PLAN_ID = process.env.RAZORPAY_PLAN_ID!
 
@@ -23,6 +30,12 @@ export const PLAN_AMOUNTS: Record<string, number> = {
   starter: 99900,    // ₹999 × 100
   standard: 249900,  // ₹2,499 × 100
   pro: 499900,       // ₹4,999 × 100
+}
+
+export const ANNUAL_PLAN_AMOUNTS: Record<string, number> = {
+  starter: 899100,   // ₹8,991 × 100
+  standard: 2249100, // ₹22,491 × 100
+  pro: 4499100,      // ₹44,991 × 100
 }
 
 export const PLAN_CURRENCY = 'INR'

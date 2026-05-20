@@ -19,6 +19,7 @@ export default function UpgradePage() {
   const [user, setUser] = useState<{ name?: string; email?: string } | null>(null)
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
   const [userCountry, setUserCountry] = useState('IN')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly')
   const [codeInput, setCodeInput] = useState('')
   const [codeChecking, setCodeChecking] = useState(false)
   const [codeError, setCodeError] = useState('')
@@ -65,10 +66,26 @@ export default function UpgradePage() {
   const currencyInfo = getCurrency(userCountry)
   const processor = getPaymentProcessor(userCountry)
 
+  const isAnnual = billingPeriod === 'annual'
   const PLANS = [
-    { id: 'starter', label: 'Starter', price: currencyInfo.starter, posts: 12, features: PLAN_FEATURES.starter, color: '#64748b' },
-    { id: 'standard', label: 'Standard', price: currencyInfo.standard, posts: 20, features: PLAN_FEATURES.standard, color: '#2B4DFF', popular: true },
-    { id: 'pro', label: 'Pro', price: currencyInfo.pro, posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed' },
+    {
+      id: 'starter', label: 'Starter', posts: 12, features: PLAN_FEATURES.starter, color: '#64748b',
+      monthlyPrice: currencyInfo.starter,
+      price: isAnnual ? Math.round(currencyInfo.annualStarter / 12 * 10) / 10 : currencyInfo.starter,
+      annualTotal: currencyInfo.annualStarter,
+    },
+    {
+      id: 'standard', label: 'Standard', posts: 20, features: PLAN_FEATURES.standard, color: '#2B4DFF', popular: true,
+      monthlyPrice: currencyInfo.standard,
+      price: isAnnual ? Math.round(currencyInfo.annualStandard / 12 * 10) / 10 : currencyInfo.standard,
+      annualTotal: currencyInfo.annualStandard,
+    },
+    {
+      id: 'pro', label: 'Pro', posts: 30, features: PLAN_FEATURES.pro, color: '#7c3aed',
+      monthlyPrice: currencyInfo.pro,
+      price: isAnnual ? Math.round(currencyInfo.annualPro / 12 * 10) / 10 : currencyInfo.pro,
+      annualTotal: currencyInfo.annualPro,
+    },
   ]
 
   async function handleSubscribe(plan: { id: string; label: string; color: string }) {
@@ -79,7 +96,7 @@ export default function UpgradePage() {
         const res = await fetch('/api/dodo/create-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan: plan.id, currency: currencyInfo.code, force_new: true }),
+          body: JSON.stringify({ plan: plan.id, currency: currencyInfo.code, billing_period: billingPeriod, force_new: true }),
         })
         const data = await res.json()
         if (data.error) { toast.error(data.error); setUpgradingPlan(null); return }
@@ -97,7 +114,7 @@ export default function UpgradePage() {
       const res = await fetch('/api/razorpay/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: plan.id }),
+        body: JSON.stringify({ planId: plan.id, billing_period: billingPeriod }),
       })
       const data = await res.json()
       if (data.error) { toast.error(data.error); setUpgradingPlan(null); return }
@@ -209,6 +226,41 @@ export default function UpgradePage() {
             </div>
             <h1 style={{ fontSize: 'clamp(24px,3vw,32px)', fontWeight: 500, letterSpacing: '-0.035em', color: 'var(--ink)', margin: '0 0 8px' }}>Choose your plan to get started</h1>
             <p style={{ fontSize: 14, color: 'var(--ink-3)' }}>Start your 7-day free trial — no charge until it ends. Cancel anytime.</p>
+
+            {/* Billing period toggle */}
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <button
+                onClick={() => setBillingPeriod('monthly')}
+                style={{
+                  fontSize: 13, fontWeight: 500, padding: '6px 16px', borderRadius: 'var(--r-full)',
+                  border: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'var(--f-sans)',
+                  background: !isAnnual ? 'var(--ink)' : 'var(--surface)',
+                  color: !isAnnual ? 'var(--bg)' : 'var(--ink-3)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingPeriod('annual')}
+                style={{
+                  fontSize: 13, fontWeight: 500, padding: '6px 16px', borderRadius: 'var(--r-full)',
+                  border: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'var(--f-sans)',
+                  background: isAnnual ? 'var(--ink)' : 'var(--surface)',
+                  color: isAnnual ? 'var(--bg)' : 'var(--ink-3)',
+                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                Annual
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-full)',
+                  background: '#16a34a', color: '#fff', letterSpacing: '0.03em',
+                }}>
+                  SAVE 25%
+                </span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -236,11 +288,23 @@ export default function UpgradePage() {
                     <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: plan.color }}>
                       {plan.label}
                     </div>
-                    <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.04em', color: 'var(--ink)' }}>
-                      {currencyInfo.symbol}{plan.price.toLocaleString()}
-                      <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink-4)' }}>/mo</span>
+                    <div className="flex items-baseline gap-2">
+                      <div style={{ fontSize: 32, fontWeight: 500, letterSpacing: '-0.04em', color: 'var(--ink)' }}>
+                        {currencyInfo.symbol}{plan.price.toLocaleString()}
+                        <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--ink-4)' }}>/mo</span>
+                      </div>
+                      {isAnnual && (
+                        <span style={{ fontSize: 14, color: 'var(--ink-4)', textDecoration: 'line-through' }}>
+                          {currencyInfo.symbol}{plan.monthlyPrice.toLocaleString()}
+                        </span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 20, marginTop: 2 }}>{plan.posts} posts/month</div>
+                    {isAnnual && (
+                      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>
+                        Billed annually · {currencyInfo.symbol}{plan.annualTotal.toLocaleString()}/yr
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 20, marginTop: isAnnual ? 2 : 2 }}>{plan.posts} posts/month</div>
                   </div>
                   <div className="flex flex-col gap-2.5 mb-6 flex-1">
                     {plan.features.map(f => (

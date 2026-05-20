@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRazorpay, PLAN_IDS, PLAN_AMOUNTS, TRIAL_DAYS } from '@/lib/razorpay'
+import { getRazorpay, PLAN_IDS, ANNUAL_PLAN_IDS, PLAN_AMOUNTS, ANNUAL_PLAN_AMOUNTS, TRIAL_DAYS } from '@/lib/razorpay'
 import { getUserFromRequest } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getPostHogClient } from '@/lib/posthog-server'
@@ -12,9 +12,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     const planId: string = body.planId || 'standard'
+    const billingPeriod: 'monthly' | 'annual' = body.billing_period === 'annual' ? 'annual' : 'monthly'
 
-    const razorpayPlanId = PLAN_IDS[planId]
+    const razorpayPlanId = billingPeriod === 'annual' ? ANNUAL_PLAN_IDS[planId] : PLAN_IDS[planId]
     if (!razorpayPlanId) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+    const planAmount = billingPeriod === 'annual' ? ANNUAL_PLAN_AMOUNTS[planId] : PLAN_AMOUNTS[planId]
 
     // Block if already on an active or non-expired trialing subscription
     const { data: existingSub } = await supabaseAdmin
@@ -62,13 +64,14 @@ export async function POST(request: NextRequest) {
     getPostHogClient().capture({
       distinctId: user.id,
       event: 'subscription_started',
-      properties: { plan: planId, amount: PLAN_AMOUNTS[planId], trial_days: TRIAL_DAYS, processor: 'razorpay', subscription_id: subscription.id },
+      properties: { plan: planId, billing_period: billingPeriod, amount: planAmount, trial_days: TRIAL_DAYS, processor: 'razorpay', subscription_id: subscription.id },
     })
 
     return NextResponse.json({
       subscription_id: subscription.id,
       plan: planId,
-      amount: PLAN_AMOUNTS[planId],
+      billing_period: billingPeriod,
+      amount: planAmount,
       trial_days: TRIAL_DAYS,
     })
   } catch (err) {
