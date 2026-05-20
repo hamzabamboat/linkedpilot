@@ -1440,7 +1440,7 @@ function HomeContent() {
             {[
               { heading: 'Product', links: [['#features', 'Features'], ['#voice', 'Voice engine'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']] },
               { heading: 'Company', links: [['#', 'About'], ['#', 'Blog'], ['#', 'Changelog'], ['#', 'Careers']] },
-              { heading: 'Legal',   links: [['#', 'Privacy'], ['#', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
+              { heading: 'Legal',   links: [['/privacy', 'Privacy'], ['/terms', 'Terms'], ['#', 'Security'], ['mailto:support@personalink.in', 'Contact']] },
             ].map(col => (
               <div key={col.heading}>
                 <h4 style={{ fontFamily: 'var(--f-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'rgba(255,255,255,.4)', marginBottom: 16, textTransform: 'uppercase' }}>{col.heading}</h4>
