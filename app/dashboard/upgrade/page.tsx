@@ -129,7 +129,7 @@ function UpgradeContent() {
           {plansToShow.map(plan => (
             <div
               key={plan.id}
-              className="overflow-hidden relative"
+              className="relative"
               style={{ border: `1px solid ${plan.color}30`, borderRadius: 'var(--r-lg)', background: 'var(--surface)' }}
             >
               {plan.popular && plansToShow.length > 1 && (
