@@ -360,6 +360,96 @@ export async function sendTrialStartedEmail({
 }
 
 
+export async function sendPipelineReminderEmail({
+  to,
+  userName,
+  upcomingCount,
+  postsUsed,
+  postsLimit,
+  plan,
+}: {
+  to: string
+  userName: string
+  upcomingCount: number
+  postsUsed: number
+  postsLimit: number
+  plan: string
+}) {
+  const firstName = userName.split(' ')[0]
+  const remaining = postsLimit - postsUsed
+  const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
+
+  const urgencyColor = upcomingCount === 0 ? '#dc2626' : '#d97706'
+  const urgencyBg = upcomingCount === 0 ? '#fef2f2' : '#fffbeb'
+  const urgencyBorder = upcomingCount === 0 ? '#fca5a5' : '#fcd34d'
+  const pipelineMessage =
+    upcomingCount === 0
+      ? `You have <strong>no posts scheduled</strong> — your LinkedIn presence will go quiet soon.`
+      : `You only have <strong>${upcomingCount} post${upcomingCount !== 1 ? 's' : ''} left</strong> in your queue.`
+
+  return resend().emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: upcomingCount === 0
+      ? `Your LinkedIn queue is empty, ${firstName} — time to refill it`
+      : `Your post queue is running low, ${firstName}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+
+    <div style="background:#0A66C2;padding:28px 32px;">
+      <div>
+        <div style="background:white;border-radius:8px;padding:6px 12px;display:inline-block;">
+          <img src="${APP_URL}/logo-text.png" alt="PersonaLink" style="height:28px;width:auto;display:block;" />
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:32px;">
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:#0f172a;">Keep the momentum going, ${firstName}</h1>
+      <p style="margin:0 0 24px;color:#64748b;font-size:15px;">Consistent posting is what drives LinkedIn growth — here's a quick check-in on your queue.</p>
+
+      <div style="background:${urgencyBg};border:1px solid ${urgencyBorder};border-radius:10px;padding:16px 18px;margin-bottom:24px;">
+        <p style="margin:0;font-size:14px;color:${urgencyColor};">${pipelineMessage}</p>
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:28px;">
+        <h2 style="margin:0 0 14px;font-size:14px;font-weight:600;color:#0f172a;">Your ${planLabel} plan this month</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="padding:6px 0;color:#64748b;font-size:14px;">Posts generated</td>
+            <td style="padding:6px 0;text-align:right;font-weight:600;color:#0f172a;font-size:14px;">${postsUsed} / ${postsLimit}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#64748b;font-size:14px;">Generations remaining</td>
+            <td style="padding:6px 0;text-align:right;font-weight:600;color:${remaining > 5 ? '#059669' : '#d97706'};font-size:14px;">${remaining}</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;color:#64748b;font-size:14px;">Posts in queue</td>
+            <td style="padding:6px 0;text-align:right;font-weight:600;color:${upcomingCount > 0 ? '#0f172a' : '#dc2626'};font-size:14px;">${upcomingCount}</td>
+          </tr>
+        </table>
+      </div>
+
+      <a href="${APP_URL}/dashboard" style="display:block;text-align:center;background:#0A66C2;color:white;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:600;font-size:15px;margin-bottom:16px;">
+        Generate posts now →
+      </a>
+
+      <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center;">
+        You're on the ${planLabel} plan. Resets on the 1st of each month.<br>
+        <a href="${APP_URL}/dashboard/settings?tab=plan" style="color:#0A66C2;">Manage subscription</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`,
+    text: `Keep the momentum going, ${firstName}!\n\n${upcomingCount === 0 ? 'Your LinkedIn queue is empty.' : `You have ${upcomingCount} post${upcomingCount !== 1 ? 's' : ''} left in your queue.`}\n\nThis month: ${postsUsed}/${postsLimit} posts generated, ${remaining} remaining.\n\nGenerate posts now: ${APP_URL}/dashboard`,
+  })
+}
+
 export async function sendAdminAlert({ subject, body }: { subject: string; body: string }) {
   const adminEmail = process.env.ADMIN_EMAIL || 'hamzabamboat@gmail.com'
   return resend().emails.send({

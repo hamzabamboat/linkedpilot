@@ -194,3 +194,6 @@ create table if not exists profile_analyses (
 
 create index if not exists profile_analyses_user_id_idx on profile_analyses(user_id);
 create index if not exists subscriptions_razorpay_id_idx on subscriptions(razorpay_subscription_id);
+
+-- Pipeline reminder throttle: track when the last low-queue reminder was sent per user
+alter table user_profiles add column if not exists last_pipeline_reminder_sent_at timestamptz;
